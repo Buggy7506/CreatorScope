@@ -13,13 +13,13 @@ const platformKeys: PlatformKey[] = ['TikTok', 'YouTube', 'Instagram'];
 function metricClass(accent: 'positive' | 'neutral' | 'negative') {
   if (accent === 'positive') return 'text-emerald-300';
   if (accent === 'negative') return 'text-rose-300';
-  return 'text-slate-300';
+  return 'text-zinc-300';
 }
 
 function progressColor(value: number) {
-  if (value >= 80) return 'from-cyan-400/95 to-violet-400/70';
-  if (value >= 60) return 'from-cyan-400/80 to-sky-500/50';
-  return 'from-slate-600 to-slate-500';
+  if (value >= 80) return 'from-emerald-400/95 to-lime-400/70';
+  if (value >= 60) return 'from-emerald-400/80 to-teal-500/50';
+  return 'from-zinc-600 to-zinc-500';
 }
 
 const revenueTracking = {
@@ -80,60 +80,60 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
 
   return (
     <div className="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8">
-      <div className="rounded-[2rem] border border-white/10 bg-slate-900/80 p-8 shadow-glow backdrop-blur-xl sm:p-10">
+      <div className="rounded-[2rem] border border-white/10 bg-zinc-900/80 p-8 shadow-glow backdrop-blur-xl sm:p-10">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-3 rounded-full bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-300 ring-1 ring-cyan-400/20">
+            <div className="inline-flex items-center gap-3 rounded-full bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-400/20">
               Multi-platform creator analytics
             </div>
             <div>
               <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
                 {user ? `Welcome back, ${user.name}` : 'CreatorScope Dashboard'}
               </h1>
-              <p className="mt-3 max-w-2xl text-slate-300">
+              <p className="mt-3 max-w-2xl text-zinc-300">
                 TikTok, YouTube, and Instagram analytics fused into a single command center. Launch your product now with cross-channel momentum, strategy triggers, and audience growth forecasts.
               </p>
             </div>
           </div>
-          <div className="rounded-3xl bg-slate-950/80 p-4 shadow-xl shadow-cyan-500/10 ring-1 ring-white/5">
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Momentum Score</p>
+          <div className="rounded-3xl bg-zinc-950/80 p-4 shadow-xl shadow-emerald-500/10 ring-1 ring-white/5">
+            <p className="text-xs uppercase tracking-[0.24em] text-zinc-400">Momentum Score</p>
             <p className="mt-3 text-4xl font-semibold text-white">{platformData.score}</p>
-            <p className="mt-1 text-sm text-slate-400">Out of 100, powered by Creator DNA and trend velocity.</p>
+            <p className="mt-1 text-sm text-zinc-400">Out of 100, powered by Creator DNA and trend velocity.</p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="mt-8 rounded-3xl border border-cyan-400/10 bg-slate-950/90 p-5 text-slate-200 ring-1 ring-cyan-400/20">
+          <div className="mt-8 rounded-3xl border border-emerald-400/10 bg-zinc-950/90 p-5 text-zinc-200 ring-1 ring-emerald-400/20">
             Loading analytics for {platform}...
           </div>
         ) : error ? (
-          <div className="mt-8 rounded-3xl border border-rose-400/10 bg-slate-950/90 p-5 text-rose-300 ring-1 ring-rose-400/20">
+          <div className="mt-8 rounded-3xl border border-rose-400/10 bg-zinc-950/90 p-5 text-rose-300 ring-1 ring-rose-400/20">
             Unable to load analytics yet. The dashboard will use fallback data while the API is connected.
           </div>
         ) : null}
 
-        <div className="mt-8 rounded-3xl border border-white/10 bg-slate-950/90 p-6 shadow-sm shadow-cyan-500/5">
+        <div className="mt-8 rounded-3xl border border-white/10 bg-zinc-950/90 p-6 shadow-sm shadow-emerald-500/5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">YouTube channel</p>
+              <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">YouTube channel</p>
               <h2 className="mt-2 text-3xl font-semibold text-white">{channel?.channelName ?? 'Connected YouTube channel'}</h2>
             </div>
-            <p className="rounded-full bg-slate-900/80 px-4 py-2 text-sm text-slate-300">
+            <p className="rounded-full bg-zinc-900/80 px-4 py-2 text-sm text-zinc-300">
               Total Snapshots: {history.length}
             </p>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-5">
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Subscribers</p>
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5">
+              <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Subscribers</p>
               <p className="mt-3 text-3xl font-semibold text-white">{channel?.subscribers ?? '—'}</p>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-5">
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Total views</p>
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5">
+              <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Total views</p>
               <p className="mt-3 text-3xl font-semibold text-white">{channel?.totalViews ?? '—'}</p>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-5">
-              <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Total videos</p>
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5">
+              <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Total videos</p>
               <p className="mt-3 text-3xl font-semibold text-white">{channel?.totalVideos ?? '—'}</p>
             </div>
           </div>
@@ -143,10 +143,10 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
           </div>
         </div>
 
-        <div className="mt-10 rounded-[2rem] bg-slate-950/90 p-4 sm:p-6">
+        <div className="mt-10 rounded-[2rem] bg-zinc-950/90 p-4 sm:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">Platform</p>
+              <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Platform</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">{platform} Overview</h2>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -154,7 +154,7 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
                 <button
                   key={key}
                   onClick={() => setPlatform(key)}
-                  className={`rounded-full px-5 py-2 text-sm font-medium transition ${key === platform ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'}`}
+                  className={`rounded-full px-5 py-2 text-sm font-medium transition ${key === platform ? 'bg-emerald-400 text-zinc-950 shadow-lg shadow-emerald-500/20' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800'}`}
                 >
                   {key}
                 </button>
@@ -164,8 +164,8 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {platformData.kpis.map((item) => (
-              <div key={item.label} className="rounded-3xl border border-white/10 bg-slate-950/80 p-5 shadow-sm shadow-cyan-500/5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">{item.label}</p>
+              <div key={item.label} className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5 shadow-sm shadow-emerald-500/5">
+                <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">{item.label}</p>
                 <p className="mt-4 text-3xl font-semibold text-white">{item.value}</p>
                 <p className={`mt-3 text-sm font-medium ${metricClass(item.accent)}`}>{item.change}</p>
               </div>
@@ -173,20 +173,20 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
           </div>
 
           <div className="mt-10 grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Views over time</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Views over time</p>
                   <p className="mt-2 text-lg font-semibold text-white">Weekly engagement curve</p>
                 </div>
-                <span className="rounded-full bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.24em] text-slate-300">Live simulation</span>
+                <span className="rounded-full bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-300">Live simulation</span>
               </div>
-              <div className="mt-8 h-60 overflow-hidden rounded-3xl bg-slate-900 p-4">
+              <div className="mt-8 h-60 overflow-hidden rounded-3xl bg-zinc-900 p-4">
                 <svg viewBox="0 0 360 160" className="h-full w-full">
                   <defs>
                     <linearGradient id="lineGrad" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#22d3ee" />
-                      <stop offset="100%" stopColor="#a855f7" />
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#84cc16" />
                     </linearGradient>
                   </defs>
                   <polyline
@@ -205,21 +205,21 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
                   {platformData.trend.map((point, index) => {
                     const x = 40 + index * 44;
                     const y = 140 - (point.value / maxTrend) * 110;
-                    return <circle key={point.label} cx={x} cy={y} r={4} fill="#22d3ee" />;
+                    return <circle key={point.label} cx={x} cy={y} r={4} fill="#10b981" />;
                   })}
                 </svg>
               </div>
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Engagement mix</p>
+              <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
+                <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Engagement mix</p>
                 <div className="mt-8 grid grid-cols-2 gap-4">
                   {platformData.mix.map((item) => {
                     const circumference = 2 * Math.PI * 26;
                     const dash = `${(item.value / 100) * circumference} ${circumference}`;
                     return (
-                      <div key={item.label} className="rounded-3xl bg-slate-950/90 p-4">
+                      <div key={item.label} className="rounded-3xl bg-zinc-950/90 p-4">
                         <div className="flex items-center gap-3">
                           <svg width="72" height="72" viewBox="0 0 72 72">
                             <circle cx="36" cy="36" r="26" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
@@ -237,7 +237,7 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
                           </svg>
                           <div>
                             <p className="text-base font-semibold text-white">{item.label}</p>
-                            <p className="text-sm text-slate-400">{item.value}%</p>
+                            <p className="text-sm text-zinc-400">{item.value}%</p>
                           </div>
                         </div>
                       </div>
@@ -246,16 +246,16 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Growth funnel</p>
+              <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
+                <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Growth funnel</p>
                 <div className="mt-6 space-y-4">
                   {platformData.growth.map((item) => (
                     <div key={item.label}>
-                      <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
+                      <div className="mb-2 flex items-center justify-between text-sm text-zinc-300">
                         <span>{item.label}</span>
                         <span>{item.value}%</span>
                       </div>
-                      <div className="h-2 rounded-full bg-slate-800">
+                      <div className="h-2 rounded-full bg-zinc-800">
                         <div className={`h-2 rounded-full bg-gradient-to-r ${progressColor(item.value)}`} style={{ width: `${(item.value / maxGrowth) * 100}%` }} />
                       </div>
                     </div>
@@ -266,54 +266,54 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
           </div>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Revenue tracking</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Revenue tracking</p>
                   <p className="mt-2 text-lg font-semibold text-white">Creator earnings overview</p>
                 </div>
                 <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-emerald-300">Stripe ready</span>
               </div>
               <div className="mt-8 space-y-4 text-white">
-                <div className="rounded-3xl bg-slate-900/90 p-4">
-                  <p className="text-sm uppercase tracking-[0.2em] text-slate-400">This period</p>
+                <div className="rounded-3xl bg-zinc-900/90 p-4">
+                  <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">This period</p>
                   <p className="mt-3 text-3xl font-semibold text-white">{liveRevenue.revenue}</p>
-                  <p className="mt-2 text-sm text-slate-400">{liveRevenue.dealCount} · {liveRevenue.change} vs last month</p>
+                  <p className="mt-2 text-sm text-zinc-400">{liveRevenue.dealCount} · {liveRevenue.change} vs last month</p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-3xl bg-slate-900/90 p-4">
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">MRR</p>
+                  <div className="rounded-3xl bg-zinc-900/90 p-4">
+                    <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">MRR</p>
                     <p className="mt-3 text-2xl font-semibold text-white">{liveRevenue.mrr}</p>
                   </div>
-                  <div className="rounded-3xl bg-slate-900/90 p-4">
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Deals live</p>
+                  <div className="rounded-3xl bg-zinc-900/90 p-4">
+                    <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">Deals live</p>
                     <p className="mt-3 text-2xl font-semibold text-white">{liveRevenue.dealCount}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Subscription plan</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Subscription plan</p>
                   <p className="mt-2 text-lg font-semibold text-white">Creator package status</p>
                 </div>
-                <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-cyan-200">Trial</span>
+                <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-emerald-200">Trial</span>
               </div>
               <div className="mt-8 space-y-4 text-white">
-                <div className="rounded-3xl bg-slate-900/90 p-4">
-                  <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Plan</p>
+                <div className="rounded-3xl bg-zinc-900/90 p-4">
+                  <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">Plan</p>
                   <p className="mt-3 text-2xl font-semibold text-white">{subscriptionPlan.name}</p>
-                  <p className="mt-2 text-sm text-slate-400">{subscriptionPlan.price}</p>
+                  <p className="mt-2 text-sm text-zinc-400">{subscriptionPlan.price}</p>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-3xl bg-slate-900/90 p-4">
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Status</p>
+                  <div className="rounded-3xl bg-zinc-900/90 p-4">
+                    <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">Status</p>
                     <p className="mt-3 text-xl font-semibold text-white">{subscriptionPlan.status}</p>
                   </div>
-                  <div className="rounded-3xl bg-slate-900/90 p-4">
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Next billing</p>
+                  <div className="rounded-3xl bg-zinc-900/90 p-4">
+                    <p className="text-sm uppercase tracking-[0.2em] text-zinc-400">Next billing</p>
                     <p className="mt-3 text-xl font-semibold text-white">{subscriptionPlan.nextBilling}</p>
                   </div>
                 </div>
@@ -322,49 +322,49 @@ const DashboardPage = ({ user }: DashboardPageProps) => {
           </div>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Agency package system</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">Agency package system</p>
                   <p className="mt-2 text-lg font-semibold text-white">Sell creator services</p>
                 </div>
-                <span className="rounded-full bg-violet-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-violet-200">Agency ready</span>
+                <span className="rounded-full bg-lime-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-lime-200">Agency ready</span>
               </div>
               <div className="mt-8 space-y-4">
                 {agencyPackages.map((pkg) => (
-                  <div key={pkg.name} className="rounded-3xl bg-slate-900/90 p-4">
+                  <div key={pkg.name} className="rounded-3xl bg-zinc-900/90 p-4">
                     <p className="font-semibold text-white">{pkg.name}</p>
-                    <p className="mt-2 text-sm text-slate-400">{pkg.details}</p>
+                    <p className="mt-2 text-sm text-zinc-400">{pkg.details}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6 shadow-sm shadow-cyan-500/5">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-6 shadow-sm shadow-emerald-500/5">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-slate-400">AI caption generator</p>
+                  <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">AI caption generator</p>
                   <p className="mt-2 text-lg font-semibold text-white">Copy built for engagement</p>
                 </div>
-                <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-cyan-200">Draft</span>
+                <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-emerald-200">Draft</span>
               </div>
-              <div className="mt-8 rounded-3xl bg-slate-900/90 p-5 text-sm leading-7 text-slate-300">
+              <div className="mt-8 rounded-3xl bg-zinc-900/90 p-5 text-sm leading-7 text-zinc-300">
                 {captionExample}
               </div>
             </div>
           </div>
 
-          <section className="mt-10 rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-sm shadow-cyan-500/5">
+          <section className="mt-10 rounded-[2rem] border border-white/10 bg-zinc-950/80 p-8 shadow-sm shadow-emerald-500/5">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">Content strategy insights</p>
+                <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">Content strategy insights</p>
                 <h2 className="mt-3 text-2xl font-semibold text-white">AI growth bullets built for creators</h2>
               </div>
-              <span className="rounded-full bg-white/5 px-4 py-2 text-sm text-slate-300">Ready to ship as your app core</span>
+              <span className="rounded-full bg-white/5 px-4 py-2 text-sm text-zinc-300">Ready to ship as your app core</span>
             </div>
             <div className="mt-8 grid gap-4 md:grid-cols-3">
               {platformData.insights.map((insight) => (
-                <div key={insight} className="rounded-3xl border border-white/5 bg-slate-950/90 p-5 text-sm leading-7 text-slate-300 shadow-inner shadow-slate-950/30">
+                <div key={insight} className="rounded-3xl border border-white/5 bg-zinc-950/90 p-5 text-sm leading-7 text-zinc-300 shadow-inner shadow-zinc-950/30">
                   {insight}
                 </div>
               ))}

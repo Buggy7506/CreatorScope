@@ -120,10 +120,25 @@ const platformSchema = z.object({
   platform: z.enum(['TikTok', 'YouTube', 'Instagram']).optional(),
 });
 
+const platformParamSchema = z.object({
+  platform: z.string().transform((value) => {
+    const normalized = value.toLowerCase();
+    if (normalized === 'tiktok') return 'TikTok';
+    if (normalized === 'youtube') return 'YouTube';
+    if (normalized === 'instagram') return 'Instagram';
+    return value;
+  }).pipe(z.enum(['TikTok', 'YouTube', 'Instagram'])),
+});
+
 router.get('/', (req, res) => {
   const { platform } = platformSchema.parse(req.query);
   const selectedPlatform = platform ?? 'TikTok';
   res.json({ platform: selectedPlatform, data: analyticsData[selectedPlatform] });
+});
+
+router.get('/:platform', (req, res) => {
+  const { platform } = platformParamSchema.parse(req.params);
+  res.json(analyticsData[platform]);
 });
 
 export default router;
