@@ -1,26 +1,19 @@
-import axios from "axios";
+import axios from 'axios';
+import { getToken } from './auth';
+
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? '/api/v1';
 
 export const api = axios.create({
-  baseURL: "http://localhost:5000/api/v1",
+  baseURL: apiBaseUrl,
 });
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("token")
-        : null;
+api.interceptors.request.use((config) => {
+  const token = typeof window !== 'undefined' ? getToken() : null;
 
-    if (token) {
-      config.headers = config.headers ?? {};
-
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+
+  return config;
+});

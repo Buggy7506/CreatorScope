@@ -42,8 +42,8 @@ export default function AnalyticsChart({
           <YAxis stroke="#e2e8f0" />
           <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#e2e8f0' }} />
           <Legend wrapperStyle={{ color: '#e2e8f0' }} />
-          <Line type="monotone" dataKey="subscribers" stroke="#22d3ee" strokeWidth={2} />
-          <Line type="monotone" dataKey="views" stroke="#a78bfa" strokeWidth={2} />
+          <Line type="monotone" dataKey="subscribers" stroke="#10b981" strokeWidth={2} />
+          <Line type="monotone" dataKey="views" stroke="#a3e635" strokeWidth={2} />
           <Line type="monotone" dataKey="likes" stroke="#34d399" strokeWidth={2} />
           <Line type="monotone" dataKey="comments" stroke="#f87171" strokeWidth={2} />
         </LineChart>
