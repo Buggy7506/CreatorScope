@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider         = "postgresql"
+  url              = env("DATABASE_URL")
+  connection_limit = 10
+}
+
+model User {
+  id String @id @default(cuid())
+
+  email    String @unique
+  password String
+  name     String
+
+  connectedAccounts ConnectedAccount[]
+
+  analyticsSnapshots AnalyticsSnapshot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ConnectedAccount {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  platform String
+
+  platformUserId String?
+
+  username String?
+
+  channelId String?
+
+  accessToken  String?
+  refreshToken String?
+
+  expiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AnalyticsSnapshot {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  platform String
+
+  subscribers Int
+  totalViews  Int
+  totalVideos Int
+
+  snapshotDate DateTime @default(now())
+
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,152 @@
+import { Link } from 'react-router-dom';
+
+const features = [
+  {
+    title: 'AI Trend Telemetry',
+    description: 'Decode which sounds, topics, and formats are heating up across TikTok, YouTube, and Instagram in real time.',
+  },
+  {
+    title: 'Viral Pulse Predictor',
+    description: 'See which posts are most likely to blow up before you publish with momentum scoring and recommendation signals.',
+  },
+  {
+    title: 'Creator DNA Heatmap',
+    description: 'Visualize your strongest posting moments by weekday, hour, and content format so every upload lands at peak velocity.',
+  },
+  {
+    title: 'Revenue Tracking',
+    description: 'Monitor earnings, brand deals, and channel payouts across platforms with a simple growth dashboard.',
+  },
+  {
+    title: 'Agency Package System',
+    description: 'Sell creator services, sponsorship bundles, and managed packages from one platform-ready offering.',
+  },
+  {
+    title: 'AI Caption Generator',
+    description: 'Create keyword-rich captions and hooks fast so every post lands with improved reach and engagement.',
+  },
+];
+
+const LandingPage = () => {
+  return (
+    <div className="relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-cyan-500/20 via-transparent to-transparent" />
+      <section className="relative mx-auto max-w-7xl px-5 pb-20 pt-10 sm:px-6 lg:px-8">
+        <div className="rounded-[2rem] border border-white/10 bg-slate-900/70 p-8 shadow-glow backdrop-blur-xl sm:p-12">
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div>
+              <div className="mb-4 inline-flex rounded-full bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 ring-1 ring-cyan-400/20">
+                Creator analytics built for go-big growth
+              </div>
+              <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                CreatorScope — the only dashboard that blends TikTok, YouTube, and Instagram growth into one alien power source.
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
+                Launch a premium website and analytics app that creators can use today. CreatorScope turns raw engagement into strategy, timing, and viral content signals you can act on instantly.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link to="/login" className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-6 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-cyan-500/25 transition hover:bg-cyan-300">
+                  Open the dashboard
+                </Link>
+                <a href="#pricing" className="inline-flex items-center justify-center rounded-full border border-slate-700 bg-slate-950/80 px-6 py-3 text-base text-slate-200 transition hover:border-cyan-400 hover:text-white">
+                  See pricing
+                </a>
+              </div>
+            </div>
+
+            <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6 shadow-xl shadow-cyan-500/10 ring-1 ring-white/5 sm:p-8">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">30-day free trial</p>
+                  <h3 className="mt-2 text-2xl font-semibold text-white">Try the app risk-free for a month.</h3>
+                </div>
+                <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-sm font-semibold text-emerald-300">Starter ready</span>
+              </div>
+              <div className="space-y-4 text-sm text-slate-300">
+                <p>One dashboard for TikTok, YouTube, Instagram</p>
+                <p>AI-powered creator strategy, timing, and viral signals</p>
+                <p>Live analytics view, heatmaps, top content, and growth alerts</p>
+              </div>
+              <div className="mt-8 rounded-3xl bg-slate-900/90 p-5 shadow-inner shadow-slate-950/40">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-3xl bg-slate-950/60 p-4">
+                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Live Reach</p>
+                    <p className="mt-3 text-3xl font-semibold text-white">1.8M</p>
+                    <p className="mt-2 text-sm text-slate-400">Combined TikTok + Instagram</p>
+                  </div>
+                  <div className="rounded-3xl bg-slate-950/60 p-4">
+                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Watch Hours</p>
+                    <p className="mt-3 text-3xl font-semibold text-white">48K</p>
+                    <p className="mt-2 text-sm text-slate-400">YouTube review insights</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 sm:px-6 lg:px-8" id="features">
+        <div className="grid gap-6 lg:grid-cols-3">
+          {features.map((feature) => (
+            <article key={feature.title} className="rounded-[2rem] border border-white/10 bg-slate-900/70 p-6 shadow-xl shadow-cyan-500/5 transition hover:border-cyan-400/20 hover:bg-slate-900/90">
+              <h2 className="text-xl font-semibold text-white">{feature.title}</h2>
+              <p className="mt-3 text-sm leading-6 text-slate-300">{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-6 lg:px-8" id="pricing">
+        <div className="grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <div>
+            <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">Launch-ready creator product</p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              More than a landing page. Become a creator platform with analytics that actually moves the needle.
+            </h2>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+              Build a website and app experience for creators who want premium growth intelligence and cross-platform momentum. The dashboard is ready, the site is ready, and the next step is to connect real API data.
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-glow">
+            <div className="space-y-6">
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">CreatorScope Plans</p>
+                <p className="mt-4 text-4xl font-semibold text-white">Starter + Pro</p>
+                <p className="mt-2 text-slate-400">Perfect for new creators and mid-tier growth teams.</p>
+              </div>
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div className="rounded-[1.75rem] border border-white/10 bg-slate-900/90 p-6">
+                  <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">Starter</p>
+                  <p className="mt-4 text-4xl font-semibold text-white">$19 / mo</p>
+                  <p className="mt-2 text-slate-400">Best for new creators and launch bundles.</p>
+                  <ul className="mt-6 space-y-3 text-sm text-slate-300">
+                    <li>✔ 30-day free trial</li>
+                    <li>✔ TikTok, YouTube, Instagram basics</li>
+                    <li>✔ Starter revenue tracking</li>
+                  </ul>
+                </div>
+                <div className="rounded-[1.75rem] border border-white/10 bg-slate-900/90 p-6">
+                  <p className="text-sm uppercase tracking-[0.24em] text-cyan-300">Pro Creator</p>
+                  <p className="mt-4 text-4xl font-semibold text-white">$49 / mo</p>
+                  <p className="mt-2 text-slate-400">Perfect for mid-tier creators with 10K–500K followers.</p>
+                  <ul className="mt-6 space-y-3 text-sm text-slate-300">
+                    <li>✔ All analytics, revenue, and agency package support</li>
+                    <li>✔ AI caption suggestions and viral insights</li>
+                    <li>✔ Stripe billing and subscription management</li>
+                  </ul>
+                </div>
+              </div>
+              <Link to="/login" className="inline-flex w-full items-center justify-center rounded-full bg-cyan-400 px-6 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-300">
+                Start the demo
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default LandingPage;
