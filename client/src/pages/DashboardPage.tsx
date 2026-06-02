@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrainCircuit, Database, GitBranch, RadioTower, ShieldCheck } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import AnalyticsChart from "../components/AnalyticsChart";
 import UnifiedDashboard from "../components/UnifiedDashboard";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -71,6 +72,36 @@ const enterpriseBlueprints = [
       "Multi-tenant creator workspaces, RBAC, platform-token vaulting, audit logs, rate-limit protection, and data residency controls.",
   },
 ];
+
+
+const workspaceSections = {
+  overview: {
+    title: "Overview command center",
+    eyebrow: "Overview",
+    body: "Unified creator health, cross-platform KPIs, alerts, and next-best actions for daily growth decisions.",
+    features: ["Creator health score", "Platform comparison", "AI action queue", "Sync status"],
+  },
+  audience: {
+    title: "Audience intelligence",
+    eyebrow: "Audience",
+    body: "Follower growth, affinity clusters, attendance windows, demographic quality, and overlap between TikTok, Instagram, and YouTube.",
+    features: ["Audience overlap", "Psychographic cohorts", "Activity heatmaps", "Retention segments"],
+  },
+  content: {
+    title: "Content history",
+    eyebrow: "Content History",
+    body: "A searchable history for posts, videos, reels, shorts, snapshots, publishing cadence, and performance baselines.",
+    features: ["Upload archive", "Snapshot charting", "Format breakdown", "Historical baselines"],
+  },
+  revenue: {
+    title: "Revenue cockpit",
+    eyebrow: "Revenue",
+    body: "Subscriptions, sponsorships, AdSense, affiliate, commerce, memberships, RPM, CPM, and future earnings forecasts.",
+    features: ["Revenue mix", "Brand deal ledger", "Predictive earnings", "Billing health"],
+  },
+};
+
+type WorkspaceSectionKey = keyof typeof workspaceSections;
 
 const platformContracts: Record<PlatformKey, string[]> = {
   YouTube: [
@@ -152,6 +183,9 @@ const EmptyState = ({ title, body }: { title: string; body: string }) => (
 );
 
 const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
+  const location = useLocation();
+  const selectedSection = (new URLSearchParams(location.search).get("section") ?? "overview") as WorkspaceSectionKey;
+  const activeSection = workspaceSections[selectedSection] ?? workspaceSections.overview;
   const [platform, setPlatform] = useState<PlatformKey>("YouTube");
   const { data: platformData, isLoading, error } = useAnalytics(platform);
   const [unifiedAnalytics, setUnifiedAnalytics] = useState<UnifiedAnalytics>(emptyUnifiedAnalytics);
@@ -284,6 +318,23 @@ const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
             )}
           </div>
         </div>
+
+        <section className="mt-10 rounded-[2rem] border border-white/10 bg-zinc-950/90 p-6 shadow-sm shadow-emerald-500/5" id={selectedSection}>
+          <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">{activeSection.eyebrow}</p>
+          <div className="mt-3 grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div>
+              <h2 className="text-3xl font-semibold text-white">{activeSection.title}</h2>
+              <p className="mt-3 text-sm leading-7 text-zinc-400">{activeSection.body}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {activeSection.features.map((feature) => (
+                <div key={feature} className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm font-semibold text-zinc-200">
+                  {feature}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <div className="mt-10">
           <UnifiedDashboard analytics={unifiedAnalytics} />

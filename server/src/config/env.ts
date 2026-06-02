@@ -16,6 +16,15 @@ export const env = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || '',
+  YOUTUBE_REDIRECT_URI: process.env.YOUTUBE_REDIRECT_URI || process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5000/api/v1/connect/youtube/callback',
+
+  TIKTOK_CLIENT_KEY: process.env.TIKTOK_CLIENT_KEY || '',
+  TIKTOK_CLIENT_SECRET: process.env.TIKTOK_CLIENT_SECRET || '',
+  TIKTOK_REDIRECT_URI: process.env.TIKTOK_REDIRECT_URI || 'http://localhost:5000/api/v1/connect/tiktok/callback',
+
+  INSTAGRAM_CLIENT_ID: process.env.INSTAGRAM_CLIENT_ID || '',
+  INSTAGRAM_CLIENT_SECRET: process.env.INSTAGRAM_CLIENT_SECRET || '',
+  INSTAGRAM_REDIRECT_URI: process.env.INSTAGRAM_REDIRECT_URI || 'http://localhost:5000/api/v1/connect/instagram/callback',
 
   MICROSOFT_CLIENT_ID: process.env.MICROSOFT_CLIENT_ID || '',
   MICROSOFT_CLIENT_SECRET: process.env.MICROSOFT_CLIENT_SECRET || '',

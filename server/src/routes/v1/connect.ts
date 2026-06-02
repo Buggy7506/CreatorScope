@@ -97,6 +97,131 @@ router.get('/google/callback', async (req, res) => {
   }
 });
 
+
+router.get('/youtube', (_req, res) => {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.YOUTUBE_REDIRECT_URI) {
+    return oauthFailure(res, 'YouTube OAuth is not configured yet. Add Google OAuth credentials and YOUTUBE_REDIRECT_URI.');
+  }
+
+  const oauth2Client = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.YOUTUBE_REDIRECT_URI);
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: [
+      'openid',
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/youtube.readonly',
+      'https://www.googleapis.com/auth/yt-analytics.readonly',
+    ],
+  });
+
+  return res.redirect(url);
+});
+
+router.get('/youtube/callback', async (req, res) => {
+  try {
+    const code = String(req.query.code ?? '');
+    if (!code) return oauthFailure(res, 'YouTube did not return an authorization code.');
+
+    const oauth2Client = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, env.YOUTUBE_REDIRECT_URI);
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({ auth: oauth2Client, version: 'v2' });
+    const me = await oauth2.userinfo.get();
+    const email = me.data.email;
+    if (!email) return oauthFailure(res, 'Google did not share an email address for the YouTube connection.');
+
+    const password = await bcrypt.hash(`oauth:YOUTUBE:${me.data.id ?? email}`, 12);
+    const user = await prisma.user.upsert({
+      where: { email: email.toLowerCase() },
+      update: { name: me.data.name || email.split('@')[0] || 'YouTube Creator' },
+      create: { email: email.toLowerCase(), name: me.data.name || email.split('@')[0] || 'YouTube Creator', password },
+    });
+
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    const channelResponse = await youtube.channels.list({ mine: true, part: ['id', 'snippet', 'statistics'] });
+    const channel = channelResponse.data.items?.[0];
+
+    const existingAccount = await prisma.connectedAccount.findFirst({
+      where: { userId: user.id, platform: 'YOUTUBE', platformUserId: channel?.id ?? me.data.id ?? email },
+    });
+
+    const accountData = {
+      userId: user.id,
+      platform: 'YOUTUBE' as const,
+      platformUserId: channel?.id ?? me.data.id ?? email,
+      username: channel?.snippet?.title ?? me.data.name ?? email.split('@')[0],
+      displayName: channel?.snippet?.title ?? me.data.name ?? 'YouTube Creator',
+      channelId: channel?.id,
+      profileUrl: channel?.id ? `https://www.youtube.com/channel/${channel.id}` : undefined,
+      scopes: Array.isArray(tokens.scope) ? tokens.scope : String(tokens.scope ?? '').split(' ').filter(Boolean),
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
+      disconnectedAt: null,
+      metadata: {
+        subscribers: channel?.statistics?.subscriberCount,
+        totalViews: channel?.statistics?.viewCount,
+        totalVideos: channel?.statistics?.videoCount,
+        thumbnail: channel?.snippet?.thumbnails?.high?.url,
+      },
+    };
+
+    if (existingAccount) {
+      await prisma.connectedAccount.update({ where: { id: existingAccount.id }, data: accountData });
+    } else {
+      await prisma.connectedAccount.create({ data: accountData });
+    }
+
+    const target = new URL('/auth/callback', env.FRONTEND_URL);
+    target.searchParams.set('token', signToken(user.id));
+    target.searchParams.set('name', user.name);
+    target.searchParams.set('email', user.email);
+    return res.redirect(target.toString());
+  } catch (error) {
+    console.error(error);
+    return oauthFailure(res, 'YouTube connection failed. Confirm the callback URL is registered in Google Cloud.');
+  }
+});
+
+router.get('/tiktok', (_req, res) => {
+  if (!env.TIKTOK_CLIENT_KEY || !env.TIKTOK_REDIRECT_URI) {
+    return oauthFailure(res, 'TikTok integration is ready in CreatorScope, but TikTok API credentials are not configured yet.');
+  }
+
+  const params = querystring.stringify({
+    client_key: env.TIKTOK_CLIENT_KEY,
+    response_type: 'code',
+    redirect_uri: env.TIKTOK_REDIRECT_URI,
+    scope: 'user.info.basic,video.list',
+  });
+  return res.redirect(`https://www.tiktok.com/v2/auth/authorize/?${params}`);
+});
+
+router.get('/tiktok/callback', (_req, res) => {
+  return oauthFailure(res, 'TikTok callback reached CreatorScope. Add token exchange credentials to complete live TikTok ingestion.');
+});
+
+router.get('/instagram', (_req, res) => {
+  if (!env.INSTAGRAM_CLIENT_ID || !env.INSTAGRAM_REDIRECT_URI) {
+    return oauthFailure(res, 'Instagram integration is ready in CreatorScope, but Instagram API credentials are not configured yet.');
+  }
+
+  const params = querystring.stringify({
+    client_id: env.INSTAGRAM_CLIENT_ID,
+    redirect_uri: env.INSTAGRAM_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'instagram_basic,instagram_manage_insights',
+  });
+  return res.redirect(`https://api.instagram.com/oauth/authorize?${params}`);
+});
+
+router.get('/instagram/callback', (_req, res) => {
+  return oauthFailure(res, 'Instagram callback reached CreatorScope. Add Meta token exchange credentials to complete live Instagram ingestion.');
+});
+
 router.get('/microsoft', (_req, res) => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_REDIRECT_URI) {
     return oauthFailure(res, 'Microsoft sign-in is not configured yet.');

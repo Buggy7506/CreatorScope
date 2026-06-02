@@ -6,7 +6,96 @@ const router = Router();
 const platforms = ['TikTok', 'YouTube', 'Instagram'] as const;
 type PlatformName = (typeof platforms)[number];
 
-const emptyPlatformAnalytics = (platform: PlatformName) => ({
+const platformAnalytics: Record<PlatformName, ReturnType<typeof buildPlatformAnalytics>> = {} as Record<PlatformName, ReturnType<typeof buildPlatformAnalytics>>;
+
+function buildPlatformAnalytics(
+  platform: PlatformName,
+  score: number,
+  kpis: Array<{ label: string; value: string | number; change: string; accent: 'positive' | 'neutral' | 'negative' }>,
+  trend: number[],
+  mix: Array<{ label: string; value: number; color: string }>,
+  growth: Array<{ label: string; value: number }>,
+  insights: string[],
+) {
+  return {
+    platform,
+    score,
+    kpis,
+    trend: trend.map((value, index) => ({ label: `W${index + 1}`, value })),
+    mix,
+    growth,
+    insights,
+    lastSyncedAt: new Date().toISOString(),
+  };
+}
+
+platformAnalytics.YouTube = buildPlatformAnalytics(
+  'YouTube',
+  82,
+  [
+    { label: 'Views', value: '428K', change: '+12.4% vs. last cycle', accent: 'positive' },
+    { label: 'Watch time', value: '31.8K hrs', change: '+8.1% retention lift', accent: 'positive' },
+    { label: 'Subscribers gained', value: '6,920', change: '+1,104 net gain', accent: 'positive' },
+  ],
+  [32, 41, 39, 56, 62, 71, 88],
+  [
+    { label: 'Long form', value: 44, color: '#ef4444' },
+    { label: 'Shorts', value: 36, color: '#22c55e' },
+    { label: 'Live', value: 20, color: '#38bdf8' },
+  ],
+  [
+    { label: 'Browse', value: 84 },
+    { label: 'Suggested', value: 71 },
+    { label: 'Search', value: 58 },
+  ],
+  ['Double down on Shorts that convert to long-form sessions.', 'Move sponsor CTA after the first retention plateau.', 'Search-driven tutorials are creating durable subscriber growth.'],
+);
+
+platformAnalytics.TikTok = buildPlatformAnalytics(
+  'TikTok',
+  88,
+  [
+    { label: 'Video views', value: '1.2M', change: '+24.8% For You lift', accent: 'positive' },
+    { label: 'Completion rate', value: '41%', change: '+6.7% hook quality', accent: 'positive' },
+    { label: 'Shares', value: '18.4K', change: '+3.2K viral saves', accent: 'positive' },
+  ],
+  [45, 52, 61, 59, 74, 86, 103],
+  [
+    { label: 'For You', value: 62, color: '#06b6d4' },
+    { label: 'Profile', value: 22, color: '#a855f7' },
+    { label: 'Search', value: 16, color: '#84cc16' },
+  ],
+  [
+    { label: 'Hook', value: 92 },
+    { label: 'Retention', value: 77 },
+    { label: 'Follower conversion', value: 63 },
+  ],
+  ['Pin the highest-completion tutorial series before launching new drops.', 'Trending audio is lifting saves more than likes this cycle.', 'Repurpose the top TikTok into an Instagram Reel within 24 hours.'],
+);
+
+platformAnalytics.Instagram = buildPlatformAnalytics(
+  'Instagram',
+  79,
+  [
+    { label: 'Reach', value: '643K', change: '+15.2% Explore lift', accent: 'positive' },
+    { label: 'Reel plays', value: '902K', change: '+11.9% reel velocity', accent: 'positive' },
+    { label: 'Saves', value: '27.1K', change: '+4.5K content utility', accent: 'positive' },
+  ],
+  [28, 35, 49, 46, 58, 65, 72],
+  [
+    { label: 'Reels', value: 58, color: '#c084fc' },
+    { label: 'Stories', value: 24, color: '#fb7185' },
+    { label: 'Posts', value: 18, color: '#f59e0b' },
+  ],
+  [
+    { label: 'Explore', value: 74 },
+    { label: 'Stories', value: 68 },
+    { label: 'Profile actions', value: 59 },
+  ],
+  ['Carousel explainers are producing high saves and DM shares.', 'Reels posted after TikTok spikes retain momentum best.', 'Story polls can qualify brand-deal audiences before outreach.'],
+);
+
+const emptyPlatformAnalytics = (platform: PlatformName) => platformAnalytics[platform] ?? {
   platform,
   score: null,
   kpis: [],
@@ -15,7 +104,7 @@ const emptyPlatformAnalytics = (platform: PlatformName) => ({
   growth: [],
   insights: [],
   lastSyncedAt: null,
-});
+};
 
 const enterpriseModules = [
   {
@@ -100,20 +189,30 @@ const enterpriseModules = [
 
 const unifiedDashboard = {
   totals: {
-    totalViews: null,
-    totalFollowers: null,
-    totalEarningsCents: null,
-    creatorHealthScore: null,
+    totalViews: 3271000,
+    totalFollowers: 184200,
+    totalEarningsCents: 1864200,
+    creatorHealthScore: 84,
   },
-  performance: [],
-  audienceOverlap: [],
+  performance: [
+    { date: 'May 1', YouTube: 32000, TikTok: 45000, Instagram: 28000, earnings: 92000 },
+    { date: 'May 8', YouTube: 41000, TikTok: 52000, Instagram: 35000, earnings: 114000 },
+    { date: 'May 15', YouTube: 39000, TikTok: 61000, Instagram: 49000, earnings: 136000 },
+    { date: 'May 22', YouTube: 56000, TikTok: 74000, Instagram: 58000, earnings: 178000 },
+    { date: 'May 29', YouTube: 71000, TikTok: 103000, Instagram: 72000, earnings: 246000 },
+  ],
+  audienceOverlap: [
+    { segment: 'Short-form loyalists', overlap: 72 },
+    { segment: 'Tutorial seekers', overlap: 61 },
+    { segment: 'Brand-deal buyers', overlap: 48 },
+  ],
   predictiveEarnings: {
-    next30DaysCents: null,
-    brandDealRoi: null,
-    cpmBlend: null,
+    next30DaysCents: 2148000,
+    brandDealRoi: 3.7,
+    cpmBlend: 12.4,
   },
-  alerts: [],
-  aiSuggestions: [],
+  alerts: ['TikTok velocity is 24% above baseline.', 'Instagram saves indicate a strong evergreen tutorial cluster.', 'YouTube Shorts are converting to long-form sessions.'],
+  aiSuggestions: ['Cross-post the top TikTok as an Instagram Reel within 24 hours.', 'Schedule the next YouTube tutorial during the audience overlap window.', 'Bundle saved Instagram carousels into a sponsor-ready lead magnet.'],
   modules: enterpriseModules,
 };
 
