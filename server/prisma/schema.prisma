@@ -3,20 +3,47 @@ generator client {
 }
 
 datasource db {
-  provider         = "postgresql"
-  url              = env("DATABASE_URL")
-  connection_limit = 10
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  YOUTUBE
+  TIKTOK
+  INSTAGRAM
+  GOOGLE
+  MICROSOFT
+  APPLE
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  UNPAID
 }
 
 model User {
   id String @id @default(cuid())
 
-  email    String @unique
-  password String
-  name     String
+  email     String  @unique
+  password  String
+  name      String
+  timezone  String  @default("UTC")
+  avatarUrl String?
 
-  connectedAccounts ConnectedAccount[]
-
+  connectedAccounts  ConnectedAccount[]
+  subscriptions      Subscription[]
+  analyticsCaches    AnalyticsCache[]
   analyticsSnapshots AnalyticsSnapshot[]
 
   createdAt DateTime @default(now())
@@ -27,32 +54,92 @@ model ConnectedAccount {
   id String @id @default(cuid())
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  platform String
-
+  platform       Platform
   platformUserId String?
+  username       String?
+  displayName    String?
+  channelId      String?
+  profileUrl     String?
+  scopes         String[] @default([])
 
-  username String?
+  accessToken    String?
+  refreshToken   String?
+  expiresAt      DateTime?
+  connectedAt    DateTime  @default(now())
+  disconnectedAt DateTime?
 
-  channelId String?
-
-  accessToken  String?
-  refreshToken String?
-
-  expiresAt DateTime?
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform, platformUserId])
+  @@index([userId, platform])
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tier   SubscriptionTier   @default(FREE)
+  status SubscriptionStatus @default(ACTIVE)
+
+  stripeCustomerId     String?
+  stripeSubscriptionId String? @unique
+  stripePriceId        String?
+  stripeProductId      String?
+
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean   @default(false)
+  canceledAt         DateTime?
+  trialEndsAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([stripeCustomerId])
+}
+
+model AnalyticsCache {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  platform   Platform?
+  cacheKey   String
+  rangeStart DateTime?
+  rangeEnd   DateTime?
+  expiresAt  DateTime
+
+  totalViews         BigInt   @default(0)
+  totalFollowers     BigInt   @default(0)
+  totalEarningsCents BigInt   @default(0)
+  engagementRate     Decimal? @db.Decimal(8, 4)
+  growthRate         Decimal? @db.Decimal(8, 4)
+
+  payload Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform, cacheKey])
+  @@index([userId, expiresAt])
 }
 
 model AnalyticsSnapshot {
   id String @id @default(cuid())
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  platform String
+  platform Platform
 
   subscribers Int
   totalViews  Int

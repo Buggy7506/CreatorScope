@@ -7,6 +7,7 @@ import {
 import { useAnalytics } from "../hooks/useAnalytics";
 import { api } from "../lib/api";
 import AnalyticsChart from "../components/AnalyticsChart";
+import UnifiedDashboard from "../components/UnifiedDashboard";
 
 const platformKeys: PlatformKey[] = ["TikTok", "YouTube", "Instagram"];
 
@@ -312,6 +313,10 @@ const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
           <div className="mt-10">
             <AnalyticsChart data={history} />
           </div>
+        </div>
+
+        <div className="mt-10">
+          <UnifiedDashboard />
         </div>
 
         <div className="mt-10 rounded-[2rem] bg-zinc-950/90 p-4 sm:p-6">

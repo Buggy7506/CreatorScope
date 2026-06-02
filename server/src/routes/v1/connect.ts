@@ -12,7 +12,7 @@ const router = Router();
 type SocialProfile = {
   email: string;
   name: string;
-  provider: 'google' | 'microsoft' | 'apple';
+  provider: 'GOOGLE' | 'MICROSOFT' | 'APPLE';
   providerUserId?: string;
 };
 
@@ -86,7 +86,7 @@ router.get('/google/callback', async (req, res) => {
     if (!email) return oauthFailure(res, 'Google did not share an email address.');
 
     return finishSocialLogin(res, {
-      provider: 'google',
+      provider: 'GOOGLE',
       email,
       name: me.data.name || email.split('@')[0] || 'Google Creator',
       providerUserId: me.data.id || undefined,
@@ -140,7 +140,7 @@ router.get('/microsoft/callback', async (req, res) => {
     if (!email) return oauthFailure(res, 'Microsoft did not share an email address.');
 
     return finishSocialLogin(res, {
-      provider: 'microsoft',
+      provider: 'MICROSOFT',
       email,
       name: profileRes.data.displayName || email.split('@')[0] || 'Microsoft Creator',
       providerUserId: profileRes.data.id,
@@ -179,7 +179,7 @@ router.post('/apple/callback', async (req, res) => {
   }
 
   return finishSocialLogin(res, {
-    provider: 'apple',
+    provider: 'APPLE',
     email,
     name: name || String(email).split('@')[0] || 'Apple Creator',
     providerUserId: req.body?.sub || appleClaims.sub,
