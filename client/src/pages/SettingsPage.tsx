@@ -1,4 +1,6 @@
+import { useMemo, useState } from "react";
 import { CreditCard, Globe2, PlugZap, ShieldCheck, UserRound } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import type { AuthUser } from "../lib/auth";
 
 interface SettingsPageProps {
@@ -8,20 +10,23 @@ interface SettingsPageProps {
 const integrations = [
   {
     platform: "YouTube",
-    status: "Connected",
-    description: "Views, watch time, subscribers, demographic maps, CTR, and Shorts velocity.",
+    status: "Connect YouTube",
+    href: "/api/v1/connect/youtube",
+    description: "OAuth channel stats, videos, snapshots, watch time, subscribers, CTR, Shorts velocity, and revenue-ready ingestion.",
     tone: "bg-red-50 text-red-700 border-red-100",
   },
   {
     platform: "TikTok",
-    status: "Connect",
-    description: "Video views, follower analytics, trending audio, and real-time engagement rates.",
+    status: "Prepare TikTok sync",
+    href: "/api/v1/connect/tiktok",
+    description: "Video views, follower analytics, completion rate, trending audio, profile actions, and engagement-rate workspaces.",
     tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
   },
   {
     platform: "Instagram",
-    status: "Connect",
-    description: "Reach, impressions, follower demographics, Reels, and story engagement.",
+    status: "Prepare Instagram sync",
+    href: "/api/v1/connect/instagram",
+    description: "Reach, impressions, follower demographics, Reels plays, saves, story taps, and content performance history.",
     tone: "bg-purple-50 text-purple-700 border-purple-100",
   },
 ];
@@ -33,15 +38,26 @@ const invoices = [
 ];
 
 export default function SettingsPage({ user }: SettingsPageProps) {
+  const location = useLocation();
+  const section = new URLSearchParams(location.search).get("section") ?? "settings";
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [billingMessage, setBillingMessage] = useState("Stripe customer portal is ready to be wired to live Stripe keys.");
+  const sectionTitle = useMemo(() => {
+    if (section === "profile") return "Profile";
+    if (section === "integrations") return "Integrations";
+    if (section === "billing") return "Billing";
+    return "Settings";
+  }, [section]);
+
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-6 lg:px-8">
       <header className="rounded-[2rem] bg-zinc-950 p-8 text-white shadow-glow">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">Settings</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">{sectionTitle}</p>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-black tracking-tight">Account, integrations, and billing</h1>
+            <h1 className="text-4xl font-black tracking-tight">Account, profile, integrations, and billing</h1>
             <p className="mt-3 max-w-3xl text-zinc-300">
-              Manage profile preferences, OAuth connections, Stripe subscriptions, payment methods, and invoice history from one operational panel.
+              Manage creator identity, OAuth connections, TikTok and Instagram analytics readiness, Stripe subscriptions, payment methods, invoice history, and notification preferences.
             </p>
           </div>
           <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-4 py-2 text-sm font-bold text-emerald-200">
@@ -51,7 +67,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
       </header>
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)]">
+        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)]" id="profile">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><UserRound /></span>
             <div>
@@ -60,7 +76,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             </div>
           </div>
 
-          <form className="mt-6 space-y-4">
+          <form className="mt-6 space-y-4" onSubmit={(event) => { event.preventDefault(); setProfileSaved(true); }}>
             <label className="block text-sm font-bold text-zinc-700">
               Name
               <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue={user?.name ?? "Creator"} />
@@ -68,6 +84,10 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             <label className="block text-sm font-bold text-zinc-700">
               Email
               <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue={user?.email ?? "creator@creatorscope.app"} />
+            </label>
+            <label className="block text-sm font-bold text-zinc-700">
+              Creator niche
+              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue="Short-form education, lifestyle, and brand partnerships" />
             </label>
             <label className="block text-sm font-bold text-zinc-700">
               Timezone
@@ -78,13 +98,14 @@ export default function SettingsPage({ user }: SettingsPageProps) {
                 <option value="UTC">UTC</option>
               </select>
             </label>
-            <button type="button" className="rounded-full bg-zinc-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-900/10">
+            <button type="submit" className="rounded-full bg-zinc-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-900/10">
               Save profile
             </button>
+            {profileSaved ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">Profile preferences saved locally for this workspace session.</p> : null}
           </form>
         </article>
 
-        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)]">
+        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)]" id="integrations">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><PlugZap /></span>
             <div>
@@ -100,17 +121,17 @@ export default function SettingsPage({ user }: SettingsPageProps) {
                   <h3 className="text-xl font-black">{integration.platform}</h3>
                   <Globe2 size={19} />
                 </div>
-                <p className="mt-3 min-h-24 text-sm leading-6 opacity-80">{integration.description}</p>
-                <button type="button" className="mt-4 w-full rounded-full bg-white px-4 py-2 text-sm font-black shadow-sm">
+                <p className="mt-3 min-h-32 text-sm leading-6 opacity-80">{integration.description}</p>
+                <a href={integration.href} className="mt-4 inline-flex w-full justify-center rounded-full bg-white px-4 py-2 text-sm font-black shadow-sm">
                   {integration.status}
-                </button>
+                </a>
               </div>
             ))}
           </div>
         </article>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]" id="billing">
         <article className="rounded-[2rem] bg-zinc-950 p-6 text-white shadow-glow">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-white/10 p-3 text-lime-300"><CreditCard /></span>
@@ -130,10 +151,11 @@ export default function SettingsPage({ user }: SettingsPageProps) {
               <ShieldCheck className="text-emerald-300" size={38} />
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
-              <button type="button" className="rounded-full bg-emerald-400 px-5 py-3 text-sm font-black text-zinc-950">Update payment method</button>
-              <button type="button" className="rounded-full border border-white/15 px-5 py-3 text-sm font-black text-white">Open customer portal</button>
-              <button type="button" className="rounded-full border border-rose-300/25 px-5 py-3 text-sm font-black text-rose-200">Cancel plan</button>
+              <button type="button" onClick={() => setBillingMessage("Payment method update queued for Stripe checkout.")} className="rounded-full bg-emerald-400 px-5 py-3 text-sm font-black text-zinc-950">Update payment method</button>
+              <button type="button" onClick={() => setBillingMessage("Customer portal launch requested. Add live Stripe portal URL in production.")} className="rounded-full border border-white/15 px-5 py-3 text-sm font-black text-white">Open customer portal</button>
+              <button type="button" onClick={() => setBillingMessage("Cancellation request staged. Confirm cancellation in Stripe before changing subscription status.")} className="rounded-full border border-rose-300/25 px-5 py-3 text-sm font-black text-rose-200">Cancel plan</button>
             </div>
+            <p className="mt-4 rounded-2xl bg-white/10 px-4 py-3 text-sm text-zinc-200">{billingMessage}</p>
           </div>
         </article>
 

@@ -6,7 +6,6 @@ import {
   FolderClock,
   Home,
   LogOut,
-  MessageSquarePlus,
   Plug,
   Settings,
   UserCircle,
@@ -45,14 +44,13 @@ type SidebarItem = {
 };
 
 const sidebarItems: SidebarItem[] = [
-  { label: "New Chat", icon: MessageSquarePlus, path: "/dashboard", disabledOffline: true },
-  { label: "Overview", icon: Home, path: "/dashboard" },
-  { label: "Audience", icon: Users, path: "/dashboard" },
-  { label: "Content History", icon: FolderClock, path: "/dashboard" },
-  { label: "Revenue", icon: BarChart3, path: "/dashboard" },
-  { label: "Integrations", icon: Plug, path: "/settings", disabledOffline: true },
-  { label: "Billing", icon: CreditCard, path: "/settings" },
-  { label: "Settings", icon: Settings, path: "/settings" },
+  { label: "Overview", icon: Home, path: "/dashboard?section=overview" },
+  { label: "Audience", icon: Users, path: "/dashboard?section=audience" },
+  { label: "Content History", icon: FolderClock, path: "/dashboard?section=content" },
+  { label: "Revenue", icon: BarChart3, path: "/dashboard?section=revenue" },
+  { label: "Integrations", icon: Plug, path: "/settings?section=integrations", disabledOffline: true },
+  { label: "Billing", icon: CreditCard, path: "/settings?section=billing" },
+  { label: "Settings", icon: Settings, path: "/settings?section=settings" },
 ];
 
 function App() {
@@ -62,6 +60,7 @@ function App() {
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const [isBootstrapping, setIsBootstrapping] = useState(Boolean(getToken()));
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -116,8 +115,13 @@ function App() {
   };
 
   const handleLogout = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = () => {
     logout();
     setUser(null);
+    setIsLogoutDialogOpen(false);
     navigate("/");
   };
 
@@ -247,7 +251,7 @@ function App() {
                   <span className="sidebar-link-label">Sign out</span>
                 </button>
                 <Link
-                  to="/settings"
+                  to="/settings?section=profile"
                   className="sidebar-profile-link"
                   title="Profile and preferences"
                 >
@@ -281,6 +285,40 @@ function App() {
                 />
               </Routes>
             </main>
+
+            {isLogoutDialogOpen ? (
+              <div className="confirm-dialog-backdrop" role="presentation">
+                <div
+                  className="confirm-dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="sign-out-dialog-title"
+                >
+                  <p className="confirm-dialog-kicker">Confirm sign out</p>
+                  <h2 id="sign-out-dialog-title">Sign out of CreatorScope?</h2>
+                  <p>
+                    Your current workspace will close and you will need to sign in again
+                    to view protected analytics, billing, and integrations.
+                  </p>
+                  <div className="confirm-dialog-actions">
+                    <button
+                      type="button"
+                      className="confirm-dialog-secondary"
+                      onClick={() => setIsLogoutDialogOpen(false)}
+                    >
+                      Stay signed in
+                    </button>
+                    <button
+                      type="button"
+                      className="confirm-dialog-primary"
+                      onClick={confirmLogout}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </>
         ) : (
           <main className="public-main">
