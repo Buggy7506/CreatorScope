@@ -26,6 +26,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import LandingPage from "./pages/LandingPage";
+import SettingsPage from "./pages/SettingsPage";
 import { api } from "./lib/api";
 import {
   AuthUser,
@@ -39,18 +40,19 @@ import { useNetworkStatus } from "./hooks/useNetworkStatus";
 type SidebarItem = {
   label: string;
   icon: LucideIcon;
+  path: string;
   disabledOffline?: boolean;
 };
 
 const sidebarItems: SidebarItem[] = [
-  { label: "New Chat", icon: MessageSquarePlus, disabledOffline: true },
-  { label: "Overview", icon: Home },
-  { label: "Audience", icon: Users },
-  { label: "Content History", icon: FolderClock },
-  { label: "Revenue", icon: BarChart3 },
-  { label: "Integrations", icon: Plug, disabledOffline: true },
-  { label: "Billing", icon: CreditCard },
-  { label: "Settings", icon: Settings },
+  { label: "New Chat", icon: MessageSquarePlus, path: "/dashboard", disabledOffline: true },
+  { label: "Overview", icon: Home, path: "/dashboard" },
+  { label: "Audience", icon: Users, path: "/dashboard" },
+  { label: "Content History", icon: FolderClock, path: "/dashboard" },
+  { label: "Revenue", icon: BarChart3, path: "/dashboard" },
+  { label: "Integrations", icon: Plug, path: "/settings", disabledOffline: true },
+  { label: "Billing", icon: CreditCard, path: "/settings" },
+  { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
 function App() {
@@ -190,13 +192,13 @@ function App() {
                 <div className="sidebar-section-label">Workspace</div>
                 <nav className="sidebar-nav">
                   {sidebarItems.map(
-                    ({ label, icon: Icon, disabledOffline }) => {
+                    ({ label, icon: Icon, path, disabledOffline }) => {
                       const isDisabled = !isOnline && disabledOffline;
 
                       return (
                         <Link
                           key={label}
-                          to="/dashboard"
+                          to={path}
                           className={`sidebar-link ${isDisabled ? "sidebar-link--disabled" : ""}`}
                           title={
                             isDisabled
@@ -245,7 +247,7 @@ function App() {
                   <span className="sidebar-link-label">Sign out</span>
                 </button>
                 <Link
-                  to="/dashboard"
+                  to="/settings"
                   className="sidebar-profile-link"
                   title="Profile and preferences"
                 >
@@ -268,6 +270,10 @@ function App() {
                 <Route
                   path="/dashboard"
                   element={<DashboardPage user={user} isOnline={isOnline} />}
+                />
+                <Route
+                  path="/settings"
+                  element={<SettingsPage user={user} />}
                 />
                 <Route
                   path="*"
@@ -302,6 +308,10 @@ function App() {
               />
               <Route
                 path="/dashboard"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/settings"
                 element={<Navigate to="/login" replace />}
               />
               <Route path="*" element={<Navigate to="/" replace />} />

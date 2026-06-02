@@ -116,6 +116,35 @@ const analyticsData: Record<PlatformKey, PlatformAnalytics> = {
   },
 };
 
+const unifiedDashboard = {
+  totals: {
+    totalViews: 1884000,
+    totalFollowers: 432800,
+    totalEarningsCents: 1432000,
+    growthModel: { p0: 432800, r: 0.031, formula: 'g(t) = P0e^(rt)' },
+  },
+  performance: [
+    { date: 'Mon', YouTube: 74000, TikTok: 95000, Instagram: 85000, earnings: 1800 },
+    { date: 'Tue', YouTube: 82000, TikTok: 115000, Instagram: 92000, earnings: 2100 },
+    { date: 'Wed', YouTube: 98000, TikTok: 128000, Instagram: 108000, earnings: 2400 },
+    { date: 'Thu', YouTube: 105000, TikTok: 140000, Instagram: 120000, earnings: 2600 },
+    { date: 'Fri', YouTube: 118000, TikTok: 160000, Instagram: 132000, earnings: 3100 },
+    { date: 'Sat', YouTube: 126000, TikTok: 148000, Instagram: 128000, earnings: 2900 },
+    { date: 'Sun', YouTube: 142000, TikTok: 170000, Instagram: 148000, earnings: 3400 },
+  ],
+  audienceOverlap: [
+    { segment: 'YT + IG', overlap: 28 },
+    { segment: 'TT + IG', overlap: 34 },
+    { segment: 'YT + TT', overlap: 19 },
+  ],
+  predictiveEarnings: { next30DaysCents: 1840000, brandDealRoi: 3.7, cpmBlend: 18.4 },
+  aiSuggestions: [
+    'Publish YouTube Shorts at 6 PM UTC and repost TikTok cuts within 45 minutes.',
+    'Use high-contrast emerald or yellow thumbnail accents for +8% projected CTR.',
+    'Open sponsored videos with payoff-first hooks to protect first-3-second retention.',
+  ],
+};
+
 const platformSchema = z.object({
   platform: z.enum(['TikTok', 'YouTube', 'Instagram']).optional(),
 });
@@ -128,6 +157,10 @@ const platformParamSchema = z.object({
     if (normalized === 'instagram') return 'Instagram';
     return value;
   }).pipe(z.enum(['TikTok', 'YouTube', 'Instagram'])),
+});
+
+router.get('/unified', (_req, res) => {
+  res.json(unifiedDashboard);
 });
 
 router.get('/', (req, res) => {

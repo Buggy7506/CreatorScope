@@ -11,7 +11,7 @@ router.get("/analytics", async (_, res) => {
 
     const account = await prisma.connectedAccount.findFirst({
       where: {
-        platform: "youtube",
+        platform: "YOUTUBE",
       },
     });
 
@@ -88,7 +88,7 @@ router.post("/snapshot", async (_, res) => {
 
     const account = await prisma.connectedAccount.findFirst({
       where: {
-        platform: "youtube",
+        platform: "YOUTUBE",
       },
     });
 
@@ -132,7 +132,7 @@ router.post("/snapshot", async (_, res) => {
         data: {
           userId: account.userId,
 
-          platform: "youtube",
+          platform: "YOUTUBE",
 
           subscribers: Number(
             channel.statistics?.subscriberCount || 0
@@ -203,7 +203,7 @@ router.get("/videos", async (_, res) => {
 
     const account = await prisma.connectedAccount.findFirst({
       where: {
-        platform: "youtube",
+        platform: "YOUTUBE",
       },
     });
 
