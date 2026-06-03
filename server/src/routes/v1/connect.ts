@@ -160,7 +160,6 @@ router.get('/youtube/callback', async (req, res) => {
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
-      disconnectedAt: null,
       metadata: {
         subscribers: channel?.statistics?.subscriberCount,
         totalViews: channel?.statistics?.viewCount,

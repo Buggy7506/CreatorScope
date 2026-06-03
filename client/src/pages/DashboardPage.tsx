@@ -31,7 +31,6 @@ interface DashboardPageProps {
     email: string;
   } | null;
   isOnline?: boolean;
-  section?: WorkspaceSectionKey;
 }
 
 type YouTubeStudioPoint = {

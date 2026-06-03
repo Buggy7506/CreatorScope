@@ -201,7 +201,7 @@ const buildRealPlatformAnalytics = async (userId: string, platform: PlatformName
   if (platform !== 'YouTube') return emptyPlatformAnalytics(platform);
 
   const account = await prisma.connectedAccount.findFirst({
-    where: { userId, platform: 'YOUTUBE', disconnectedAt: null },
+    where: { userId, platform: 'YOUTUBE' },
     orderBy: { updatedAt: 'desc' },
   });
 

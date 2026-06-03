@@ -14,7 +14,6 @@ const findYouTubeAccount = (userId: string) =>
     where: {
       userId,
       platform: "YOUTUBE",
-      disconnectedAt: null,
     },
     orderBy: { updatedAt: "desc" },
   });

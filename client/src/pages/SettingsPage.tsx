@@ -190,15 +190,15 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
             {integrations.map((integration) => (
-              <div key={integration.platform} className={`rounded-3xl border p-5 ${integration.tone}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-xl font-black">{integration.platform}</h3>
-                  <Globe2 size={19} />
+              <div key={integration.platform} className={`rounded-3xl border-2 p-6 transition-all duration-200 hover:shadow-lg ${integration.tone}`}>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-lg font-black">{integration.platform}</h3>
+                  <Globe2 size={24} className="opacity-80" />
                 </div>
-                <p className="mt-3 min-h-32 text-sm leading-6 opacity-80">{integration.description}</p>
-                <a href={integration.href} className="mt-4 inline-flex w-full justify-center rounded-full bg-white px-4 py-2 text-sm font-black shadow-sm">
+                <p className="mt-4 min-h-28 text-sm leading-6 font-medium opacity-90">{integration.description}</p>
+                <a href={integration.href} className="mt-5 block text-center rounded-2xl bg-white/80 hover:bg-white px-4 py-3 text-sm font-black shadow-md transition-all duration-150">
                   {integration.status}
                 </a>
               </div>

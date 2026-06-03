@@ -319,10 +319,6 @@ function App() {
                 <Route path="/dashboard/audience" element={<DashboardPage user={user} isOnline={isOnline} section="audience" />} />
                 <Route path="/dashboard/content-history" element={<DashboardPage user={user} isOnline={isOnline} section="content" />} />
                 <Route path="/dashboard/revenue" element={<DashboardPage user={user} isOnline={isOnline} section="revenue" />} />
-                <Route path="/settings" element={<SettingsPage user={user} section="settings" />} />
-                <Route path="/settings/profile" element={<SettingsPage user={user} section="profile" />} />
-                <Route path="/integrations" element={<SettingsPage user={user} section="integrations" />} />
-                <Route path="/billing" element={<SettingsPage user={user} section="billing" />} />
                 <Route
                   path="*"
                   element={<Navigate to="/dashboard/overview" replace />}

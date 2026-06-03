@@ -178,7 +178,6 @@ export class YoutubeGa4Service {
           tokenExpiry,
           expiresAt: tokenExpiry,
           scopes: GOOGLE_CREATOR_ANALYTICS_SCOPES,
-          disconnectedAt: null,
           metadata: profile as Prisma.InputJsonObject,
         },
       });
@@ -190,7 +189,7 @@ export class YoutubeGa4Service {
   async getAuthorizedClient(connectedAccountId: string): Promise<{ auth: OAuth2Client; account: ConnectedGoogleAccount }> {
     const account = await this.prisma.connectedAccount.findUnique({ where: { id: connectedAccountId } });
 
-    if (!account || account.disconnectedAt) {
+    if (!account) {
       throw new GoogleAnalyticsServiceError("Connected Google account was not found.", 404, "account_not_found");
     }
 
@@ -431,7 +430,6 @@ export class YoutubeGa4Service {
           where: {
             userId,
             platform: { in: platform === Platform.GA4 ? [Platform.GA4, Platform.GOOGLE] : [Platform.YOUTUBE, Platform.GOOGLE] },
-            disconnectedAt: null,
           },
           orderBy: { connectedAt: "desc" },
         });
