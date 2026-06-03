@@ -75,7 +75,7 @@ function App() {
       };
       saveAuth(token, nextUser);
       setUser(nextUser);
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard/overview", { replace: true });
     }
   }, [location.search, navigate]);
 
@@ -115,7 +115,7 @@ function App() {
     }
 
     setUser(authUser);
-    navigate("/dashboard");
+    navigate("/dashboard/overview");
   };
 
   const handleLogout = () => {
@@ -154,7 +154,7 @@ function App() {
             >
               <div className="sidebar-topbar">
                 <Link
-                  to="/dashboard"
+                  to="/dashboard/overview"
                   className="sidebar-brand"
                   title="CreatorScope dashboard"
                 >
@@ -276,7 +276,7 @@ function App() {
               <Routes>
                 <Route
                   path="/"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={<Navigate to="/dashboard/overview" replace />}
                 />
                 <Route
                   path="/login"
@@ -314,9 +314,18 @@ function App() {
                   path="/settings"
                   element={<SettingsPage section="settings" user={user} />}
                 />
+                <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
+                <Route path="/dashboard/overview" element={<DashboardPage user={user} isOnline={isOnline} section="overview" />} />
+                <Route path="/dashboard/audience" element={<DashboardPage user={user} isOnline={isOnline} section="audience" />} />
+                <Route path="/dashboard/content-history" element={<DashboardPage user={user} isOnline={isOnline} section="content" />} />
+                <Route path="/dashboard/revenue" element={<DashboardPage user={user} isOnline={isOnline} section="revenue" />} />
+                <Route path="/settings" element={<SettingsPage user={user} section="settings" />} />
+                <Route path="/settings/profile" element={<SettingsPage user={user} section="profile" />} />
+                <Route path="/integrations" element={<SettingsPage user={user} section="integrations" />} />
+                <Route path="/billing" element={<SettingsPage user={user} section="billing" />} />
                 <Route
                   path="*"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={<Navigate to="/dashboard/overview" replace />}
                 />
               </Routes>
             </main>

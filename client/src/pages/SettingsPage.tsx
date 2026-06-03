@@ -14,6 +14,7 @@ type ProfileForm = {
 interface SettingsPageProps {
   section?: SettingsSection;
   user?: AuthUser | null;
+  section?: SettingsSection;
 }
 
 const PROFILE_KEY = "creatorscope_profile_preferences";
@@ -39,21 +40,21 @@ const integrations = [
   {
     platform: "YouTube",
     status: "Connect YouTube",
-    href: "/api/v1/connect/youtube",
+    href: `${apiBaseUrl}/connect/youtube`,
     description: "OAuth channel stats, videos, snapshots, watch time, subscribers, CTR, Shorts velocity, and revenue-ready ingestion.",
     tone: "bg-red-50 text-red-700 border-red-100",
   },
   {
     platform: "TikTok",
     status: "Prepare TikTok sync",
-    href: "/api/v1/connect/tiktok",
+    href: `${apiBaseUrl}/connect/tiktok`,
     description: "Video views, follower analytics, completion rate, trending audio, profile actions, and engagement-rate workspaces.",
     tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
   },
   {
     platform: "Instagram",
     status: "Prepare Instagram sync",
-    href: "/api/v1/connect/instagram",
+    href: `${apiBaseUrl}/connect/instagram`,
     description: "Reach, impressions, follower demographics, Reels plays, saves, story taps, and content performance history.",
     tone: "bg-purple-50 text-purple-700 border-purple-100",
   },
@@ -131,7 +132,9 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
         </div>
       </header>
 
+      {showProfile || showIntegrations ? (
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        {showProfile ? (
         <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="profile">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><UserRound /></span>
@@ -169,7 +172,9 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
             {profileSaved ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">Profile preferences saved locally and will stay after refresh.</p> : null}
           </form>
         </article>
+        ) : null}
 
+        {showIntegrations ? (
         <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="integrations">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><PlugZap /></span>
@@ -194,8 +199,11 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
             ))}
           </div>
         </article>
+        ) : null}
       </section>
+      ) : null}
 
+      {showSettings ? (
       <section className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="settings">
         <div className="flex items-center gap-3">
           <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><ShieldCheck /></span>
@@ -223,7 +231,9 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
           ))}
         </div>
       </section>
+      ) : null}
 
+      {showBilling ? (
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr] scroll-mt-8" id="billing">
         <article className="rounded-[2rem] bg-zinc-950 p-6 text-white shadow-glow">
           <div className="flex items-center gap-3">
@@ -267,6 +277,7 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
           </div>
         </article>
       </section>
+      ) : null}
     </div>
   );
 }
