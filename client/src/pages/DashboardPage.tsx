@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrainCircuit, Database, GitBranch, RadioTower, ShieldCheck } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import AnalyticsChart from "../components/AnalyticsChart";
 import UnifiedDashboard from "../components/UnifiedDashboard";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -31,13 +30,27 @@ interface DashboardPageProps {
     email: string;
   } | null;
   isOnline?: boolean;
+  section?: WorkspaceSectionKey;
 }
+
+type YouTubeStudioPoint = {
+  day?: string;
+  views?: number;
+  estimatedMinutesWatched?: number;
+  averageViewDuration?: number;
+  subscribersGained?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+};
 
 type YouTubeChannel = {
   channelName?: string;
   subscribers?: string;
   totalViews?: string;
   totalVideos?: string;
+  studioAnalytics?: YouTubeStudioPoint[];
+  studioAnalyticsError?: string | null;
 };
 
 const offlineTools = [
@@ -281,10 +294,8 @@ const WorkspaceSectionDetail = ({
   </div>
 );
 
-const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
-  const location = useLocation();
-  const selectedSection = (new URLSearchParams(location.search).get("section") ?? "overview") as WorkspaceSectionKey;
-  const activeSection = workspaceSections[selectedSection] ?? workspaceSections.overview;
+const DashboardPage = ({ user, isOnline = true, section = "overview" }: DashboardPageProps) => {
+  const activeSection = workspaceSections[section] ?? workspaceSections.overview;
   const [platform, setPlatform] = useState<PlatformKey>("YouTube");
   const { data: platformData, isLoading, error } = useAnalytics(platform);
   const [unifiedAnalytics, setUnifiedAnalytics] = useState<UnifiedAnalytics>(emptyUnifiedAnalytics);
@@ -406,6 +417,29 @@ const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
             ))}
           </div>
 
+          {channel?.studioAnalytics?.length ? (
+            <div className="mt-8 overflow-hidden rounded-3xl border border-white/10">
+              <div className="grid grid-cols-4 gap-3 bg-zinc-900 px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-zinc-400">
+                <span>Date</span>
+                <span>Views</span>
+                <span>Watch minutes</span>
+                <span>Subscribers gained</span>
+              </div>
+              {channel.studioAnalytics.slice(-7).map((point) => (
+                <div key={point.day} className="grid grid-cols-4 gap-3 border-t border-white/10 px-5 py-3 text-sm text-zinc-200">
+                  <span>{point.day}</span>
+                  <span>{point.views ?? "—"}</span>
+                  <span>{point.estimatedMinutesWatched ?? "—"}</span>
+                  <span>{point.subscribersGained ?? "—"}</span>
+                </div>
+              ))}
+            </div>
+          ) : channel?.studioAnalyticsError ? (
+            <p className="mt-8 rounded-3xl border border-amber-400/10 bg-amber-400/10 p-5 text-sm leading-6 text-amber-100">
+              {channel.studioAnalyticsError}
+            </p>
+          ) : null}
+
           <div className="mt-10">
             {history.length ? (
               <AnalyticsChart data={history} />
@@ -418,7 +452,7 @@ const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
           </div>
         </div>
 
-        <section className="mt-10 rounded-[2rem] border border-white/10 bg-zinc-950/90 p-6 shadow-sm shadow-emerald-500/5" id={selectedSection}>
+        <section className="mt-10 rounded-[2rem] border border-white/10 bg-zinc-950/90 p-6 shadow-sm shadow-emerald-500/5" id={section}>
           <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">{activeSection.eyebrow}</p>
           <div className="mt-3 grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>

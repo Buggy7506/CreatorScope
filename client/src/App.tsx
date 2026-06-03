@@ -44,13 +44,13 @@ type SidebarItem = {
 };
 
 const sidebarItems: SidebarItem[] = [
-  { label: "Overview", icon: Home, path: "/dashboard?section=overview" },
-  { label: "Audience", icon: Users, path: "/dashboard?section=audience" },
-  { label: "Content History", icon: FolderClock, path: "/dashboard?section=content" },
-  { label: "Revenue", icon: BarChart3, path: "/dashboard?section=revenue" },
-  { label: "Integrations", icon: Plug, path: "/settings?section=integrations", disabledOffline: true },
-  { label: "Billing", icon: CreditCard, path: "/settings?section=billing" },
-  { label: "Settings", icon: Settings, path: "/settings?section=settings" },
+  { label: "Overview", icon: Home, path: "/dashboard/overview" },
+  { label: "Audience", icon: Users, path: "/dashboard/audience" },
+  { label: "Content History", icon: FolderClock, path: "/dashboard/content-history" },
+  { label: "Revenue", icon: BarChart3, path: "/dashboard/revenue" },
+  { label: "Integrations", icon: Plug, path: "/integrations", disabledOffline: true },
+  { label: "Billing", icon: CreditCard, path: "/billing" },
+  { label: "Settings", icon: Settings, path: "/settings" },
 ];
 
 function App() {
@@ -75,7 +75,7 @@ function App() {
       };
       saveAuth(token, nextUser);
       setUser(nextUser);
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard/overview", { replace: true });
     }
   }, [location.search, navigate]);
 
@@ -111,7 +111,7 @@ function App() {
     }
 
     setUser(authUser);
-    navigate("/dashboard");
+    navigate("/dashboard/overview");
   };
 
   const handleLogout = () => {
@@ -127,22 +127,7 @@ function App() {
 
   const isAuthenticated = Boolean(user);
   const sidebarStateClass = isSidebarCollapsed ? "sidebar--collapsed" : "";
-  const currentSection = new URLSearchParams(location.search).get("section");
-  const isSidebarItemActive = (path: string) => {
-    const [pathname, query = ""] = path.split("?");
-
-    if (location.pathname !== pathname) {
-      return false;
-    }
-
-    const expectedSection = new URLSearchParams(query).get("section");
-
-    if (expectedSection === "overview" && !currentSection) {
-      return true;
-    }
-
-    return expectedSection ? currentSection === expectedSection : !currentSection;
-  };
+  const isSidebarItemActive = (path: string) => location.pathname === path || (path === "/dashboard/overview" && location.pathname === "/dashboard");
 
   if (isBootstrapping) {
     return <main className="boot-screen">Loading CreatorScope...</main>;
@@ -161,7 +146,7 @@ function App() {
             >
               <div className="sidebar-topbar">
                 <Link
-                  to="/dashboard"
+                  to="/dashboard/overview"
                   className="sidebar-brand"
                   title="CreatorScope dashboard"
                 >
@@ -269,7 +254,7 @@ function App() {
                   <span className="sidebar-link-label">Sign out</span>
                 </button>
                 <Link
-                  to="/settings?section=profile"
+                  to="/settings/profile"
                   className="sidebar-profile-link"
                   title="Profile and preferences"
                 >
@@ -283,23 +268,24 @@ function App() {
               <Routes>
                 <Route
                   path="/"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={<Navigate to="/dashboard/overview" replace />}
                 />
                 <Route
                   path="/login"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={<Navigate to="/dashboard/overview" replace />}
                 />
-                <Route
-                  path="/dashboard"
-                  element={<DashboardPage user={user} isOnline={isOnline} />}
-                />
-                <Route
-                  path="/settings"
-                  element={<SettingsPage user={user} />}
-                />
+                <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
+                <Route path="/dashboard/overview" element={<DashboardPage user={user} isOnline={isOnline} section="overview" />} />
+                <Route path="/dashboard/audience" element={<DashboardPage user={user} isOnline={isOnline} section="audience" />} />
+                <Route path="/dashboard/content-history" element={<DashboardPage user={user} isOnline={isOnline} section="content" />} />
+                <Route path="/dashboard/revenue" element={<DashboardPage user={user} isOnline={isOnline} section="revenue" />} />
+                <Route path="/settings" element={<SettingsPage user={user} section="settings" />} />
+                <Route path="/settings/profile" element={<SettingsPage user={user} section="profile" />} />
+                <Route path="/integrations" element={<SettingsPage user={user} section="integrations" />} />
+                <Route path="/billing" element={<SettingsPage user={user} section="billing" />} />
                 <Route
                   path="*"
-                  element={<Navigate to="/dashboard" replace />}
+                  element={<Navigate to="/dashboard/overview" replace />}
                 />
               </Routes>
             </main>
@@ -362,14 +348,10 @@ function App() {
                   />
                 }
               />
-              <Route
-                path="/dashboard"
-                element={<Navigate to="/login" replace />}
-              />
-              <Route
-                path="/settings"
-                element={<Navigate to="/login" replace />}
-              />
+              <Route path="/dashboard/*" element={<Navigate to="/login" replace />} />
+              <Route path="/settings/*" element={<Navigate to="/login" replace />} />
+              <Route path="/integrations" element={<Navigate to="/login" replace />} />
+              <Route path="/billing" element={<Navigate to="/login" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

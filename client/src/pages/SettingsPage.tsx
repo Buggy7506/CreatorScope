@@ -1,31 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { CreditCard, Globe2, PlugZap, ShieldCheck, UserRound } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import type { AuthUser } from "../lib/auth";
+
+type SettingsSection = "profile" | "integrations" | "billing" | "settings";
 
 interface SettingsPageProps {
   user?: AuthUser | null;
+  section?: SettingsSection;
 }
+
+const apiBaseUrl = import.meta.env.VITE_API_URL ?? "/api/v1";
 
 const integrations = [
   {
     platform: "YouTube",
     status: "Connect YouTube",
-    href: "/api/v1/connect/youtube",
+    href: `${apiBaseUrl}/connect/youtube`,
     description: "OAuth channel stats, videos, snapshots, watch time, subscribers, CTR, Shorts velocity, and revenue-ready ingestion.",
     tone: "bg-red-50 text-red-700 border-red-100",
   },
   {
     platform: "TikTok",
     status: "Prepare TikTok sync",
-    href: "/api/v1/connect/tiktok",
+    href: `${apiBaseUrl}/connect/tiktok`,
     description: "Video views, follower analytics, completion rate, trending audio, profile actions, and engagement-rate workspaces.",
     tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
   },
   {
     platform: "Instagram",
     status: "Prepare Instagram sync",
-    href: "/api/v1/connect/instagram",
+    href: `${apiBaseUrl}/connect/instagram`,
     description: "Reach, impressions, follower demographics, Reels plays, saves, story taps, and content performance history.",
     tone: "bg-purple-50 text-purple-700 border-purple-100",
   },
@@ -55,21 +59,14 @@ const operationalSettings = [
   },
 ];
 
-export default function SettingsPage({ user }: SettingsPageProps) {
-  const location = useLocation();
-  const section = new URLSearchParams(location.search).get("section") ?? "settings";
+export default function SettingsPage({ user, section = "settings" }: SettingsPageProps) {
   const [profileSaved, setProfileSaved] = useState(false);
   const [billingMessage, setBillingMessage] = useState("Stripe customer portal is ready to be wired to live Stripe keys.");
-  const sectionTitle = useMemo(() => {
-    if (section === "profile") return "Profile";
-    if (section === "integrations") return "Integrations";
-    if (section === "billing") return "Billing";
-    return "Settings";
-  }, [section]);
-
-  useEffect(() => {
-    document.getElementById(section)?.scrollIntoView({ block: "start" });
-  }, [section]);
+  const sectionTitle = section === "profile" ? "Profile" : section === "integrations" ? "Integrations" : section === "billing" ? "Billing" : "Settings";
+  const showProfile = section === "profile";
+  const showIntegrations = section === "integrations";
+  const showSettings = section === "settings";
+  const showBilling = section === "billing";
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-6 lg:px-8">
@@ -88,7 +85,9 @@ export default function SettingsPage({ user }: SettingsPageProps) {
         </div>
       </header>
 
+      {showProfile || showIntegrations ? (
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        {showProfile ? (
         <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="profile">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><UserRound /></span>
@@ -126,7 +125,9 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             {profileSaved ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">Profile preferences saved locally for this workspace session.</p> : null}
           </form>
         </article>
+        ) : null}
 
+        {showIntegrations ? (
         <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="integrations">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><PlugZap /></span>
@@ -151,8 +152,11 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             ))}
           </div>
         </article>
+        ) : null}
       </section>
+      ) : null}
 
+      {showSettings ? (
       <section className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="settings">
         <div className="flex items-center gap-3">
           <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><ShieldCheck /></span>
@@ -180,7 +184,9 @@ export default function SettingsPage({ user }: SettingsPageProps) {
           ))}
         </div>
       </section>
+      ) : null}
 
+      {showBilling ? (
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr] scroll-mt-8" id="billing">
         <article className="rounded-[2rem] bg-zinc-950 p-6 text-white shadow-glow">
           <div className="flex items-center gap-3">
@@ -224,6 +230,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
           </div>
         </article>
       </section>
+      ) : null}
     </div>
   );
 }

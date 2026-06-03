@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { prisma } from '../../lib/prisma';
+import { requireAuth, type AuthRequest } from '../../middleware/auth';
 
 const router = Router();
 
@@ -187,33 +189,89 @@ const enterpriseModules = [
   },
 ];
 
-const unifiedDashboard = {
-  totals: {
-    totalViews: 3271000,
-    totalFollowers: 184200,
-    totalEarningsCents: 1864200,
-    creatorHealthScore: 84,
-  },
-  performance: [
-    { date: 'May 1', YouTube: 32000, TikTok: 45000, Instagram: 28000, earnings: 92000 },
-    { date: 'May 8', YouTube: 41000, TikTok: 52000, Instagram: 35000, earnings: 114000 },
-    { date: 'May 15', YouTube: 39000, TikTok: 61000, Instagram: 49000, earnings: 136000 },
-    { date: 'May 22', YouTube: 56000, TikTok: 74000, Instagram: 58000, earnings: 178000 },
-    { date: 'May 29', YouTube: 71000, TikTok: 103000, Instagram: 72000, earnings: 246000 },
-  ],
-  audienceOverlap: [
-    { segment: 'Short-form loyalists', overlap: 72 },
-    { segment: 'Tutorial seekers', overlap: 61 },
-    { segment: 'Brand-deal buyers', overlap: 48 },
-  ],
-  predictiveEarnings: {
-    next30DaysCents: 2148000,
-    brandDealRoi: 3.7,
-    cpmBlend: 12.4,
-  },
-  alerts: ['TikTok velocity is 24% above baseline.', 'Instagram saves indicate a strong evergreen tutorial cluster.', 'YouTube Shorts are converting to long-form sessions.'],
-  aiSuggestions: ['Cross-post the top TikTok as an Instagram Reel within 24 hours.', 'Schedule the next YouTube tutorial during the audience overlap window.', 'Bundle saved Instagram carousels into a sponsor-ready lead magnet.'],
-  modules: enterpriseModules,
+const numberFormat = new Intl.NumberFormat('en-US');
+
+const readMetadataValue = (metadata: unknown, key: string) => {
+  if (!metadata || typeof metadata !== 'object' || !(key in metadata)) return undefined;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : undefined;
+};
+
+const buildRealPlatformAnalytics = async (userId: string, platform: PlatformName) => {
+  if (platform !== 'YouTube') return emptyPlatformAnalytics(platform);
+
+  const account = await prisma.connectedAccount.findFirst({
+    where: { userId, platform: 'YOUTUBE', disconnectedAt: null },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  if (!account) return emptyPlatformAnalytics(platform);
+
+  const snapshots = await prisma.analyticsSnapshot.findMany({
+    where: { userId, platform: 'YOUTUBE' },
+    orderBy: { snapshotDate: 'asc' },
+    take: 12,
+  });
+
+  const subscribers = snapshots.at(-1)?.subscribers ?? Number(readMetadataValue(account.metadata, 'subscribers') ?? 0);
+  const totalViews = snapshots.at(-1)?.totalViews ?? Number(readMetadataValue(account.metadata, 'totalViews') ?? 0);
+  const totalVideos = snapshots.at(-1)?.totalVideos ?? Number(readMetadataValue(account.metadata, 'totalVideos') ?? 0);
+
+  return {
+    platform,
+    score: null,
+    kpis: [
+      { label: 'Subscribers', value: subscribers ? numberFormat.format(subscribers) : null, change: snapshots.length > 1 ? `${numberFormat.format(subscribers - snapshots[0].subscribers)} since first snapshot` : 'Connect more snapshots for trend deltas', accent: 'neutral' as const },
+      { label: 'Total views', value: totalViews ? numberFormat.format(totalViews) : null, change: snapshots.length > 1 ? `${numberFormat.format(totalViews - snapshots[0].totalViews)} since first snapshot` : 'Live channel statistic from YouTube', accent: 'neutral' as const },
+      { label: 'Total videos', value: totalVideos ? numberFormat.format(totalVideos) : null, change: snapshots.length > 1 ? `${numberFormat.format(totalVideos - snapshots[0].totalVideos)} since first snapshot` : 'Live channel statistic from YouTube', accent: 'neutral' as const },
+    ],
+    trend: snapshots.map((snapshot) => ({
+      label: snapshot.snapshotDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: snapshot.totalViews,
+    })),
+    mix: [],
+    growth: snapshots.map((snapshot) => ({
+      label: snapshot.snapshotDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: snapshot.subscribers,
+    })),
+    insights: [],
+    lastSyncedAt: account.updatedAt.toISOString(),
+  };
+};
+
+const buildRealUnifiedDashboard = async (userId: string) => {
+  const youtube = await buildRealPlatformAnalytics(userId, 'YouTube');
+  const snapshots = await prisma.analyticsSnapshot.findMany({
+    where: { userId, platform: 'YOUTUBE' },
+    orderBy: { snapshotDate: 'asc' },
+    take: 12,
+  });
+  const latestSnapshot = snapshots.at(-1);
+
+  return {
+    totals: {
+      totalViews: latestSnapshot?.totalViews ?? null,
+      totalFollowers: latestSnapshot?.subscribers ?? null,
+      totalEarningsCents: null,
+      creatorHealthScore: null,
+    },
+    performance: snapshots.map((snapshot) => ({
+      date: snapshot.snapshotDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      YouTube: snapshot.totalViews,
+      TikTok: null,
+      Instagram: null,
+      earnings: null,
+    })),
+    audienceOverlap: [],
+    predictiveEarnings: {
+      next30DaysCents: null,
+      brandDealRoi: null,
+      cpmBlend: null,
+    },
+    alerts: youtube.lastSyncedAt ? [`YouTube connected account last synced at ${youtube.lastSyncedAt}.`] : [],
+    aiSuggestions: [],
+    modules: enterpriseModules,
+  };
 };
 
 const platformSchema = z.object({
@@ -230,8 +288,10 @@ const platformParamSchema = z.object({
   }).pipe(z.enum(platforms)),
 });
 
-router.get('/unified', (_req, res) => {
-  res.json(unifiedDashboard);
+router.use(requireAuth);
+
+router.get('/unified', async (req: AuthRequest, res) => {
+  res.json(await buildRealUnifiedDashboard(req.userId!));
 });
 
 router.get('/architecture', (_req, res) => {
@@ -308,15 +368,15 @@ router.get('/architecture', (_req, res) => {
   });
 });
 
-router.get('/', (req, res) => {
+router.get('/', async (req: AuthRequest, res) => {
   const { platform } = platformSchema.parse(req.query);
   const selectedPlatform = platform ?? 'YouTube';
-  res.json({ platform: selectedPlatform, data: emptyPlatformAnalytics(selectedPlatform) });
+  res.json({ platform: selectedPlatform, data: await buildRealPlatformAnalytics(req.userId!, selectedPlatform) });
 });
 
-router.get('/:platform', (req, res) => {
+router.get('/:platform', async (req: AuthRequest, res) => {
   const { platform } = platformParamSchema.parse(req.params);
-  res.json(emptyPlatformAnalytics(platform));
+  res.json(await buildRealPlatformAnalytics(req.userId!, platform));
 });
 
 export default router;
