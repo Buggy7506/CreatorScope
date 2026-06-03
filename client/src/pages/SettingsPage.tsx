@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CreditCard, Globe2, PlugZap, ShieldCheck, UserRound } from "lucide-react";
 import type { AuthUser } from "../lib/auth";
+import { apiBaseUrl } from "../lib/api";
 
 type SettingsSection = "profile" | "integrations" | "billing" | "settings";
 
