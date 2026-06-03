@@ -127,6 +127,22 @@ function App() {
 
   const isAuthenticated = Boolean(user);
   const sidebarStateClass = isSidebarCollapsed ? "sidebar--collapsed" : "";
+  const currentSection = new URLSearchParams(location.search).get("section");
+  const isSidebarItemActive = (path: string) => {
+    const [pathname, query = ""] = path.split("?");
+
+    if (location.pathname !== pathname) {
+      return false;
+    }
+
+    const expectedSection = new URLSearchParams(query).get("section");
+
+    if (expectedSection === "overview" && !currentSection) {
+      return true;
+    }
+
+    return expectedSection ? currentSection === expectedSection : !currentSection;
+  };
 
   if (isBootstrapping) {
     return <main className="boot-screen">Loading CreatorScope...</main>;
@@ -198,18 +214,20 @@ function App() {
                   {sidebarItems.map(
                     ({ label, icon: Icon, path, disabledOffline }) => {
                       const isDisabled = !isOnline && disabledOffline;
+                      const isActive = isSidebarItemActive(path);
 
                       return (
                         <Link
                           key={label}
                           to={path}
-                          className={`sidebar-link ${isDisabled ? "sidebar-link--disabled" : ""}`}
+                          className={`sidebar-link ${isActive ? "sidebar-link--active" : ""} ${isDisabled ? "sidebar-link--disabled" : ""}`}
                           title={
                             isDisabled
                               ? `${label} is unavailable offline`
                               : label
                           }
                           aria-disabled={isDisabled}
+                          aria-current={isActive ? "page" : undefined}
                           onClick={(event) => {
                             if (isDisabled) {
                               event.preventDefault();

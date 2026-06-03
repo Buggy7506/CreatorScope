@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CreditCard, Globe2, PlugZap, ShieldCheck, UserRound } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import type { AuthUser } from "../lib/auth";
@@ -37,6 +37,24 @@ const invoices = [
   { id: "INV-0994", date: "Mar 1, 2026", amount: "$19.00", status: "Paid" },
 ];
 
+const operationalSettings = [
+  {
+    title: "Workspace notifications",
+    detail: "Alert routing for viral uploads, stale OAuth tokens, billing issues, unusual RPM movement, and failed sync jobs.",
+    controls: ["Email digests", "In-app alerts", "Weekly executive summary"],
+  },
+  {
+    title: "Security & access",
+    detail: "Session controls, export permissions, least-privilege collaborator access, and workspace audit readiness.",
+    controls: ["Session review", "Role templates", "Data export approval"],
+  },
+  {
+    title: "Data governance",
+    detail: "Retention windows, creator profile enrichment, platform consent tracking, and warehouse sync policies.",
+    controls: ["Retention policy", "PII minimization", "Sync frequency"],
+  },
+];
+
 export default function SettingsPage({ user }: SettingsPageProps) {
   const location = useLocation();
   const section = new URLSearchParams(location.search).get("section") ?? "settings";
@@ -47,6 +65,10 @@ export default function SettingsPage({ user }: SettingsPageProps) {
     if (section === "integrations") return "Integrations";
     if (section === "billing") return "Billing";
     return "Settings";
+  }, [section]);
+
+  useEffect(() => {
+    document.getElementById(section)?.scrollIntoView({ block: "start" });
   }, [section]);
 
   return (
@@ -67,7 +89,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
       </header>
 
       <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)]" id="profile">
+        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="profile">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><UserRound /></span>
             <div>
@@ -105,7 +127,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
           </form>
         </article>
 
-        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)]" id="integrations">
+        <article className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="integrations">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><PlugZap /></span>
             <div>
@@ -131,7 +153,35 @@ export default function SettingsPage({ user }: SettingsPageProps) {
         </article>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]" id="billing">
+      <section className="rounded-[2rem] border border-emerald-900/10 bg-white/85 p-6 shadow-[0_24px_70px_rgba(17,45,30,0.08)] scroll-mt-8" id="settings">
+        <div className="flex items-center gap-3">
+          <span className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><ShieldCheck /></span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Settings</p>
+            <h2 className="text-2xl font-black text-zinc-950">Workspace operations</h2>
+          </div>
+        </div>
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-600">
+          Configure the professional operating layer behind CreatorScope: notifications, access control, exports, data retention, and sync behavior for serious creator teams.
+        </p>
+        <div className="mt-6 grid gap-4 lg:grid-cols-3">
+          {operationalSettings.map((item) => (
+            <article key={item.title} className="rounded-3xl border border-emerald-900/10 bg-white p-5">
+              <h3 className="text-lg font-black text-zinc-950">{item.title}</h3>
+              <p className="mt-3 min-h-24 text-sm leading-6 text-zinc-600">{item.detail}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {item.controls.map((control) => (
+                  <span key={control} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                    {control}
+                  </span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr] scroll-mt-8" id="billing">
         <article className="rounded-[2rem] bg-zinc-950 p-6 text-white shadow-glow">
           <div className="flex items-center gap-3">
             <span className="rounded-2xl bg-white/10 p-3 text-lime-300"><CreditCard /></span>

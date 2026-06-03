@@ -80,24 +80,68 @@ const workspaceSections = {
     eyebrow: "Overview",
     body: "Unified creator health, cross-platform KPIs, alerts, and next-best actions for daily growth decisions.",
     features: ["Creator health score", "Platform comparison", "AI action queue", "Sync status"],
+    workflow: [
+      "Review cross-platform sync health before campaign decisions.",
+      "Prioritize the highest-impact growth lane from alerts, revenue, and retention signals.",
+      "Convert AI recommendations into weekly experiments with owners and deadlines.",
+    ],
+    panels: [
+      { label: "Daily command brief", value: "Health, alerts, blockers", detail: "Summarizes ingestion status, platform momentum, and action readiness." },
+      { label: "Platform control", value: "YouTube · TikTok · Instagram", detail: "Switch platform contracts without leaving the overview workspace." },
+      { label: "Operating cadence", value: "Daily / weekly / monthly", detail: "Keeps tactical checks separate from strategic creator growth reviews." },
+    ],
+    actions: ["Connect missing data sources", "Audit stale integrations", "Review top growth experiments"],
   },
   audience: {
     title: "Audience intelligence",
     eyebrow: "Audience",
     body: "Follower growth, affinity clusters, attendance windows, demographic quality, and overlap between TikTok, Instagram, and YouTube.",
     features: ["Audience overlap", "Psychographic cohorts", "Activity heatmaps", "Retention segments"],
+    workflow: [
+      "Map each platform's active audience windows and recurring topic affinities.",
+      "Segment first-time viewers, returning fans, loyal subscribers, and sponsor-ready cohorts.",
+      "Use overlap gaps to decide which content should be repackaged for another platform.",
+    ],
+    panels: [
+      { label: "Cohort model", value: "Psychographic + behavioral", detail: "Prepares segments for interests, intent, attendance, and creator affinity scoring." },
+      { label: "Attendance windows", value: "Heatmap-ready", detail: "Reserved for platform-native active time, live attendance, and replay behavior." },
+      { label: "Audience quality", value: "Retention-weighted", detail: "Ranks followers by depth of engagement instead of vanity reach alone." },
+    ],
+    actions: ["Define creator personas", "Find overlap gaps", "Plan cohort-specific hooks"],
   },
   content: {
     title: "Content history",
     eyebrow: "Content History",
     body: "A searchable history for posts, videos, reels, shorts, snapshots, publishing cadence, and performance baselines.",
     features: ["Upload archive", "Snapshot charting", "Format breakdown", "Historical baselines"],
+    workflow: [
+      "Capture every upload, short, reel, livestream, and sponsor asset in one canonical archive.",
+      "Compare performance by format, topic, hook pattern, length, and publishing window.",
+      "Promote winning assets into reusable playbooks and flag weak segments for refreshes.",
+    ],
+    panels: [
+      { label: "Asset library", value: "Search + filter ready", detail: "Designed for titles, platform IDs, content types, campaigns, and canonical groups." },
+      { label: "Performance baseline", value: "Variance tracking", detail: "Compares each upload against historical medians once snapshots exist." },
+      { label: "Creative QA", value: "Hook · CTA · retention", detail: "Keeps structural diagnostics close to the content history timeline." },
+    ],
+    actions: ["Create a YouTube snapshot", "Tag content pillars", "Review underperforming assets"],
   },
   revenue: {
     title: "Revenue cockpit",
     eyebrow: "Revenue",
     body: "Subscriptions, sponsorships, AdSense, affiliate, commerce, memberships, RPM, CPM, and future earnings forecasts.",
     features: ["Revenue mix", "Brand deal ledger", "Predictive earnings", "Billing health"],
+    workflow: [
+      "Unify AdSense, sponsorship, membership, affiliate, and commerce revenue into one ledger.",
+      "Compare RPM, CPM, category, geography, device, and content format for monetization arbitrage.",
+      "Forecast creator runway and identify sponsor packages with the best margin potential.",
+    ],
+    panels: [
+      { label: "Monetization ledger", value: "Multi-source", detail: "Separates creator earnings from CreatorScope subscription billing." },
+      { label: "Deal operations", value: "Sponsor pipeline", detail: "Tracks package status, deliverables, renewal dates, and projected payout." },
+      { label: "Forecasting", value: "Runway + upside", detail: "Prepares revenue predictions once connected payment and platform data exist." },
+    ],
+    actions: ["Open billing settings", "Review sponsorship pipeline", "Connect revenue feeds"],
   },
 };
 
@@ -179,6 +223,61 @@ const EmptyState = ({ title, body }: { title: string; body: string }) => (
   <div className="rounded-3xl border border-dashed border-white/15 bg-white/[0.03] p-6 text-center">
     <p className="text-lg font-semibold text-white">{title}</p>
     <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-zinc-400">{body}</p>
+  </div>
+);
+
+const WorkspaceSectionDetail = ({
+  section,
+}: {
+  section: (typeof workspaceSections)[WorkspaceSectionKey];
+}) => (
+  <div className="mt-8 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+    <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5">
+      <p className="text-sm uppercase tracking-[0.24em] text-zinc-400">
+        Professional workflow
+      </p>
+      <ol className="mt-5 space-y-4">
+        {section.workflow.map((item, index) => (
+          <li key={item} className="flex gap-3 text-sm leading-6 text-zinc-300">
+            <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-emerald-400 text-xs font-black text-zinc-950">
+              {index + 1}
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+
+    <div className="grid gap-4 md:grid-cols-3">
+      {section.panels.map((panel) => (
+        <article
+          key={panel.label}
+          className="rounded-3xl border border-white/10 bg-white/[0.04] p-5"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
+            {panel.label}
+          </p>
+          <p className="mt-3 text-lg font-semibold text-white">{panel.value}</p>
+          <p className="mt-3 text-sm leading-6 text-zinc-400">{panel.detail}</p>
+        </article>
+      ))}
+    </div>
+
+    <div className="xl:col-span-2 rounded-3xl border border-emerald-400/10 bg-emerald-400/[0.06] p-5">
+      <p className="text-sm uppercase tracking-[0.24em] text-emerald-300">
+        Action queue
+      </p>
+      <div className="mt-4 flex flex-wrap gap-3">
+        {section.actions.map((action) => (
+          <span
+            key={action}
+            className="rounded-full border border-emerald-300/20 bg-zinc-950/70 px-4 py-2 text-sm font-semibold text-emerald-100"
+          >
+            {action}
+          </span>
+        ))}
+      </div>
+    </div>
   </div>
 );
 
@@ -334,6 +433,7 @@ const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
               ))}
             </div>
           </div>
+          <WorkspaceSectionDetail section={activeSection} />
         </section>
 
         <div className="mt-10">
