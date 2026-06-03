@@ -12,6 +12,7 @@ enum Platform {
   TIKTOK
   INSTAGRAM
   GOOGLE
+  GA4
   MICROSOFT
   APPLE
 }
@@ -87,6 +88,8 @@ model User {
 
   workspaces         WorkspaceMember[]
   connectedAccounts  ConnectedAccount[]
+  youtubeSnapshots   YoutubeSnapshot[]
+  ga4Snapshots       Ga4Snapshot[]
   subscriptions      Subscription[]
   analyticsCaches    AnalyticsCache[]
   analyticsSnapshots AnalyticsSnapshot[]
@@ -116,17 +119,103 @@ model ConnectedAccount {
 
   accessToken    String?
   refreshToken   String?
+  tokenExpiry    DateTime?
   expiresAt      DateTime?
   connectedAt    DateTime  @default(now())
   disconnectedAt DateTime?
 
   metadata Json?
 
+  youtubeSnapshots YoutubeSnapshot[]
+  ga4Snapshots     Ga4Snapshot[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, platform, platformUserId])
   @@index([userId, platform])
+  @@index([platform, channelId])
+  @@index([tokenExpiry])
+}
+
+model YoutubeSnapshot {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  connectedAccountId String
+  connectedAccount   ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  channelId String
+  date      DateTime @db.Date
+
+  views                   BigInt  @default(0)
+  likes                   BigInt  @default(0)
+  dislikes                BigInt  @default(0)
+  comments                BigInt  @default(0)
+  shares                  BigInt  @default(0)
+  subscribers             BigInt  @default(0)
+  subscribersGained       BigInt  @default(0)
+  subscribersLost         BigInt  @default(0)
+  averageViewDuration     Decimal @default(0) @db.Decimal(18, 6)
+  estimatedMinutesWatched Decimal @default(0) @db.Decimal(18, 6)
+  revenue                 Decimal @default(0) @db.Decimal(18, 6)
+  estimatedRevenue        Decimal @default(0) @db.Decimal(18, 6)
+  estimatedAdRevenue      Decimal @default(0) @db.Decimal(18, 6)
+  currency                String  @default("USD")
+
+  rawDemographics Json?
+  rawTrafficSources Json?
+  rawPayload Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([connectedAccountId, channelId, date])
+  @@index([userId, date])
+  @@index([channelId, date])
+  @@index([views])
+  @@index([subscribers])
+  @@index([revenue])
+}
+
+model Ga4Snapshot {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  connectedAccountId String
+  connectedAccount   ConnectedAccount @relation(fields: [connectedAccountId], references: [id], onDelete: Cascade)
+
+  propertyId String
+  date       DateTime @db.Date
+
+  activeUsers            BigInt  @default(0)
+  newUsers               BigInt  @default(0)
+  sessions               BigInt  @default(0)
+  pageViews              BigInt  @default(0)
+  screenPageViews        BigInt  @default(0)
+  averageSessionDuration Decimal @default(0) @db.Decimal(18, 6)
+  engagementRate         Decimal @default(0) @db.Decimal(8, 6)
+  conversions            Decimal @default(0) @db.Decimal(18, 6)
+  purchaseRevenue        Decimal @default(0) @db.Decimal(18, 6)
+  currency               String  @default("USD")
+
+  campaignConversions Json?
+  attribution         Json?
+  rawPayload          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([connectedAccountId, propertyId, date])
+  @@index([userId, date])
+  @@index([propertyId, date])
+  @@index([activeUsers])
+  @@index([sessions])
+  @@index([pageViews])
 }
 
 model Subscription {
