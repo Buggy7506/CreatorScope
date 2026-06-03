@@ -15,7 +15,6 @@ type ProfileForm = {
 interface SettingsPageProps {
   section?: SettingsSection;
   user?: AuthUser | null;
-  section?: SettingsSection;
 }
 
 const PROFILE_KEY = "creatorscope_profile_preferences";
@@ -89,6 +88,12 @@ export default function SettingsPage({ section = "settings", user }: SettingsPag
   const [profileSaved, setProfileSaved] = useState(false);
   const [profile, setProfile] = useState<ProfileForm>(() => getSavedProfile(user));
   const [billingMessage, setBillingMessage] = useState(() => localStorage.getItem(BILLING_MESSAGE_KEY) ?? "Stripe customer portal is ready to be wired to live Stripe keys.");
+  
+  const showProfile = section === "profile" || section === "settings";
+  const showIntegrations = section === "integrations" || section === "settings";
+  const showSettings = section === "settings";
+  const showBilling = section === "billing" || section === "settings";
+  
   const sectionTitle = useMemo(() => {
     if (section === "profile") return "Profile";
     if (section === "integrations") return "Integrations";
