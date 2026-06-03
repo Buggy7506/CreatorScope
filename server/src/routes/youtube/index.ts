@@ -3,17 +3,48 @@ import { google } from "googleapis";
 
 import { prisma } from "../../lib/prisma";
 import { env } from "../../config/env";
+import { requireAuth, type AuthRequest } from "../../middleware/auth";
 
 const router = Router();
 
-router.get("/analytics", async (_, res) => {
+router.use(requireAuth);
+
+const findYouTubeAccount = (userId: string) =>
+  prisma.connectedAccount.findFirst({
+    where: {
+      userId,
+      platform: "YOUTUBE",
+      disconnectedAt: null,
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+const createGoogleAuthClient = (account: NonNullable<Awaited<ReturnType<typeof findYouTubeAccount>>>) => {
+  const oauth2Client = new google.auth.OAuth2(
+    env.GOOGLE_CLIENT_ID,
+    env.GOOGLE_CLIENT_SECRET,
+    env.YOUTUBE_REDIRECT_URI
+  );
+
+  oauth2Client.setCredentials({
+    access_token: account.accessToken || undefined,
+    refresh_token: account.refreshToken || undefined,
+    expiry_date: account.expiresAt?.getTime(),
+  });
+
+  return oauth2Client;
+};
+
+const createYouTubeClient = (account: NonNullable<Awaited<ReturnType<typeof findYouTubeAccount>>>) =>
+  google.youtube({
+    version: "v3",
+    auth: createGoogleAuthClient(account),
+  });
+
+router.get("/analytics", async (req: AuthRequest, res) => {
   try {
 
-    const account = await prisma.connectedAccount.findFirst({
-      where: {
-        platform: "YOUTUBE",
-      },
-    });
+    const account = await findYouTubeAccount(req.userId!);
 
     if (!account) {
       return res.status(404).json({
@@ -21,21 +52,7 @@ router.get("/analytics", async (_, res) => {
       });
     }
 
-    const oauth2Client = new google.auth.OAuth2(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_CLIENT_SECRET,
-      env.GOOGLE_REDIRECT_URI
-    );
-
-    oauth2Client.setCredentials({
-      access_token: account.accessToken || "",
-      refresh_token: account.refreshToken || "",
-    });
-
-    const youtube = google.youtube({
-      version: "v3",
-      auth: oauth2Client,
-    });
+    const youtube = createYouTubeClient(account);
 
     const channelResponse = await youtube.channels.list({
       id: [account.channelId || ""],
@@ -48,6 +65,35 @@ router.get("/analytics", async (_, res) => {
       return res.status(404).json({
         message: "Channel not found",
       });
+    }
+
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 28);
+    const toDate = (date: Date) => date.toISOString().slice(0, 10);
+    let studioAnalytics: Array<Record<string, string | number | null>> = [];
+    let studioAnalyticsError: string | null = null;
+
+    try {
+      const youtubeAnalytics = google.youtubeAnalytics({
+        version: "v2",
+        auth: createGoogleAuthClient(account),
+      });
+      const report = await youtubeAnalytics.reports.query({
+        ids: "channel==MINE",
+        startDate: toDate(startDate),
+        endDate: toDate(endDate),
+        dimensions: "day",
+        metrics: "views,estimatedMinutesWatched,averageViewDuration,subscribersGained,likes,comments,shares",
+        sort: "day",
+      });
+      const headers = report.data.columnHeaders?.map((header) => header.name ?? "") ?? [];
+      studioAnalytics = (report.data.rows ?? []).map((row) =>
+        Object.fromEntries(headers.map((header, index) => [header, row[index] ?? null])),
+      );
+    } catch (analyticsError) {
+      console.error(analyticsError);
+      studioAnalyticsError = "YouTube Studio Analytics metrics were unavailable; channel statistics still loaded.";
     }
 
     return res.json({
@@ -71,6 +117,9 @@ router.get("/analytics", async (_, res) => {
 
         thumbnail:
           channel.snippet?.thumbnails?.high?.url,
+
+        studioAnalytics,
+        studioAnalyticsError,
       },
     });
 
@@ -83,14 +132,10 @@ router.get("/analytics", async (_, res) => {
   }
 });
 
-router.post("/snapshot", async (_, res) => {
+router.post("/snapshot", async (req: AuthRequest, res) => {
   try {
 
-    const account = await prisma.connectedAccount.findFirst({
-      where: {
-        platform: "YOUTUBE",
-      },
-    });
+    const account = await findYouTubeAccount(req.userId!);
 
     if (!account) {
       return res.status(404).json({
@@ -98,21 +143,7 @@ router.post("/snapshot", async (_, res) => {
       });
     }
 
-    const oauth2Client = new google.auth.OAuth2(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_CLIENT_SECRET,
-      env.GOOGLE_REDIRECT_URI
-    );
-
-    oauth2Client.setCredentials({
-      access_token: account.accessToken || "",
-      refresh_token: account.refreshToken || "",
-    });
-
-    const youtube = google.youtube({
-      version: "v3",
-      auth: oauth2Client,
-    });
+    const youtube = createYouTubeClient(account);
 
     const response = await youtube.channels.list({
       id: [account.channelId || ""],
@@ -162,11 +193,12 @@ router.post("/snapshot", async (_, res) => {
   }
 });
 
-router.get("/history", async (_, res) => {
+router.get("/history", async (req: AuthRequest, res) => {
   try {
 
     const snapshots =
       await prisma.analyticsSnapshot.findMany({
+        where: { userId: req.userId!, platform: "YOUTUBE" },
         orderBy: {
           snapshotDate: "desc",
         },
@@ -198,14 +230,10 @@ router.get("/history", async (_, res) => {
   }
 });
 
-router.get("/videos", async (_, res) => {
+router.get("/videos", async (req: AuthRequest, res) => {
   try {
 
-    const account = await prisma.connectedAccount.findFirst({
-      where: {
-        platform: "YOUTUBE",
-      },
-    });
+    const account = await findYouTubeAccount(req.userId!);
 
     if (!account) {
       return res.status(404).json({
@@ -213,21 +241,7 @@ router.get("/videos", async (_, res) => {
       });
     }
 
-    const oauth2Client = new google.auth.OAuth2(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_CLIENT_SECRET,
-      env.GOOGLE_REDIRECT_URI
-    );
-
-    oauth2Client.setCredentials({
-      access_token: account.accessToken || "",
-      refresh_token: account.refreshToken || "",
-    });
-
-    const youtube = google.youtube({
-      version: "v3",
-      auth: oauth2Client,
-    });
+    const youtube = createYouTubeClient(account);
 
     // STEP 1: Get latest uploads
 
