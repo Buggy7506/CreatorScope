@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrainCircuit, Database, GitBranch, RadioTower, ShieldCheck } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import AnalyticsChart from "../components/AnalyticsChart";
 import UnifiedDashboard from "../components/UnifiedDashboard";
 import { useAnalytics } from "../hooks/useAnalytics";
@@ -26,6 +25,7 @@ function progressColor(value: number) {
 }
 
 interface DashboardPageProps {
+  section?: WorkspaceSectionKey;
   user?: {
     name: string;
     email: string;
@@ -281,10 +281,9 @@ const WorkspaceSectionDetail = ({
   </div>
 );
 
-const DashboardPage = ({ user, isOnline = true }: DashboardPageProps) => {
-  const location = useLocation();
-  const selectedSection = (new URLSearchParams(location.search).get("section") ?? "overview") as WorkspaceSectionKey;
-  const activeSection = workspaceSections[selectedSection] ?? workspaceSections.overview;
+const DashboardPage = ({ section = "overview", user, isOnline = true }: DashboardPageProps) => {
+  const selectedSection = section in workspaceSections ? section : "overview";
+  const activeSection = workspaceSections[selectedSection];
   const [platform, setPlatform] = useState<PlatformKey>("YouTube");
   const { data: platformData, isLoading, error } = useAnalytics(platform);
   const [unifiedAnalytics, setUnifiedAnalytics] = useState<UnifiedAnalytics>(emptyUnifiedAnalytics);

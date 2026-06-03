@@ -1,11 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { CreditCard, Globe2, PlugZap, ShieldCheck, UserRound } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import type { AuthUser } from "../lib/auth";
 
+type SettingsSection = "profile" | "integrations" | "billing" | "settings";
+
+type ProfileForm = {
+  name: string;
+  email: string;
+  niche: string;
+  timezone: string;
+};
+
 interface SettingsPageProps {
+  section?: SettingsSection;
   user?: AuthUser | null;
 }
+
+const PROFILE_KEY = "creatorscope_profile_preferences";
+const BILLING_MESSAGE_KEY = "creatorscope_billing_message";
+
+const getSavedProfile = (user?: AuthUser | null): ProfileForm => {
+  const fallback = {
+    name: user?.name ?? "Creator",
+    email: user?.email ?? "creator@creatorscope.app",
+    niche: "Short-form education, lifestyle, and brand partnerships",
+    timezone: "America/New_York",
+  };
+
+  try {
+    const saved = localStorage.getItem(PROFILE_KEY);
+    return saved ? { ...fallback, ...JSON.parse(saved) } : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 const integrations = [
   {
@@ -55,11 +83,10 @@ const operationalSettings = [
   },
 ];
 
-export default function SettingsPage({ user }: SettingsPageProps) {
-  const location = useLocation();
-  const section = new URLSearchParams(location.search).get("section") ?? "settings";
+export default function SettingsPage({ section = "settings", user }: SettingsPageProps) {
   const [profileSaved, setProfileSaved] = useState(false);
-  const [billingMessage, setBillingMessage] = useState("Stripe customer portal is ready to be wired to live Stripe keys.");
+  const [profile, setProfile] = useState<ProfileForm>(() => getSavedProfile(user));
+  const [billingMessage, setBillingMessage] = useState(() => localStorage.getItem(BILLING_MESSAGE_KEY) ?? "Stripe customer portal is ready to be wired to live Stripe keys.");
   const sectionTitle = useMemo(() => {
     if (section === "profile") return "Profile";
     if (section === "integrations") return "Integrations";
@@ -68,8 +95,24 @@ export default function SettingsPage({ user }: SettingsPageProps) {
   }, [section]);
 
   useEffect(() => {
+    localStorage.setItem(BILLING_MESSAGE_KEY, billingMessage);
+  }, [billingMessage]);
+
+  useEffect(() => {
     document.getElementById(section)?.scrollIntoView({ block: "start" });
   }, [section]);
+
+  const handleProfileChange = (key: keyof ProfileForm, value: string) => {
+    setProfileSaved(false);
+    setProfile((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleProfileSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    localStorage.setItem("creatorscope_user", JSON.stringify({ name: profile.name, email: profile.email }));
+    setProfileSaved(true);
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-5 py-8 sm:px-6 lg:px-8">
@@ -98,22 +141,22 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             </div>
           </div>
 
-          <form className="mt-6 space-y-4" onSubmit={(event) => { event.preventDefault(); setProfileSaved(true); }}>
+          <form className="mt-6 space-y-4" onSubmit={handleProfileSubmit}>
             <label className="block text-sm font-bold text-zinc-700">
               Name
-              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue={user?.name ?? "Creator"} />
+              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" value={profile.name} onChange={(event) => handleProfileChange("name", event.target.value)} />
             </label>
             <label className="block text-sm font-bold text-zinc-700">
               Email
-              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue={user?.email ?? "creator@creatorscope.app"} />
+              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" value={profile.email} onChange={(event) => handleProfileChange("email", event.target.value)} />
             </label>
             <label className="block text-sm font-bold text-zinc-700">
               Creator niche
-              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue="Short-form education, lifestyle, and brand partnerships" />
+              <input className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" value={profile.niche} onChange={(event) => handleProfileChange("niche", event.target.value)} />
             </label>
             <label className="block text-sm font-bold text-zinc-700">
               Timezone
-              <select className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" defaultValue="America/New_York">
+              <select className="mt-2 w-full rounded-2xl border border-emerald-900/10 bg-white px-4 py-3 text-zinc-950 outline-none focus:border-emerald-500" value={profile.timezone} onChange={(event) => handleProfileChange("timezone", event.target.value)}>
                 <option value="America/New_York">America/New_York</option>
                 <option value="America/Los_Angeles">America/Los_Angeles</option>
                 <option value="Europe/London">Europe/London</option>
@@ -123,7 +166,7 @@ export default function SettingsPage({ user }: SettingsPageProps) {
             <button type="submit" className="rounded-full bg-zinc-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-900/10">
               Save profile
             </button>
-            {profileSaved ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">Profile preferences saved locally for this workspace session.</p> : null}
+            {profileSaved ? <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">Profile preferences saved locally and will stay after refresh.</p> : null}
           </form>
         </article>
 
