@@ -44,10 +44,10 @@ type SidebarItem = {
 };
 
 const sidebarItems: SidebarItem[] = [
-  { label: "Overview", icon: Home, path: "/dashboard/overview" },
-  { label: "Audience", icon: Users, path: "/dashboard/audience" },
-  { label: "Content History", icon: FolderClock, path: "/dashboard/content-history" },
-  { label: "Revenue", icon: BarChart3, path: "/dashboard/revenue" },
+  { label: "Overview", icon: Home, path: "/dashboard" },
+  { label: "Audience", icon: Users, path: "/audience" },
+  { label: "Content History", icon: FolderClock, path: "/content-history" },
+  { label: "Revenue", icon: BarChart3, path: "/revenue" },
   { label: "Integrations", icon: Plug, path: "/integrations", disabledOffline: true },
   { label: "Billing", icon: CreditCard, path: "/billing" },
   { label: "Settings", icon: Settings, path: "/settings" },
@@ -59,7 +59,7 @@ function App() {
   const isOnline = useNetworkStatus();
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const [isBootstrapping, setIsBootstrapping] = useState(Boolean(getToken()));
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem("creatorscope_sidebar_collapsed") === "true");
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -97,8 +97,12 @@ function App() {
         }
       })
       .catch(() => {
-        logout();
-        setUser(null);
+        // Keep the locally saved session on transient API failures so a refresh
+        // does not unexpectedly return creators to the public landing page.
+        const storedUser = getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+        }
       })
       .finally(() => setIsBootstrapping(false));
   }, [isOnline]);
@@ -127,7 +131,11 @@ function App() {
 
   const isAuthenticated = Boolean(user);
   const sidebarStateClass = isSidebarCollapsed ? "sidebar--collapsed" : "";
-  const isSidebarItemActive = (path: string) => location.pathname === path || (path === "/dashboard/overview" && location.pathname === "/dashboard");
+  useEffect(() => {
+    localStorage.setItem("creatorscope_sidebar_collapsed", String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
+  const isSidebarItemActive = (path: string) => location.pathname === path;
 
   if (isBootstrapping) {
     return <main className="boot-screen">Loading CreatorScope...</main>;
@@ -254,7 +262,7 @@ function App() {
                   <span className="sidebar-link-label">Sign out</span>
                 </button>
                 <Link
-                  to="/settings/profile"
+                  to="/profile"
                   className="sidebar-profile-link"
                   title="Profile and preferences"
                 >
@@ -272,7 +280,39 @@ function App() {
                 />
                 <Route
                   path="/login"
-                  element={<Navigate to="/dashboard/overview" replace />}
+                  element={<Navigate to="/dashboard" replace />}
+                />
+                <Route
+                  path="/dashboard"
+                  element={<DashboardPage section="overview" user={user} isOnline={isOnline} />}
+                />
+                <Route
+                  path="/audience"
+                  element={<DashboardPage section="audience" user={user} isOnline={isOnline} />}
+                />
+                <Route
+                  path="/content-history"
+                  element={<DashboardPage section="content" user={user} isOnline={isOnline} />}
+                />
+                <Route
+                  path="/revenue"
+                  element={<DashboardPage section="revenue" user={user} isOnline={isOnline} />}
+                />
+                <Route
+                  path="/profile"
+                  element={<SettingsPage section="profile" user={user} />}
+                />
+                <Route
+                  path="/integrations"
+                  element={<SettingsPage section="integrations" user={user} />}
+                />
+                <Route
+                  path="/billing"
+                  element={<SettingsPage section="billing" user={user} />}
+                />
+                <Route
+                  path="/settings"
+                  element={<SettingsPage section="settings" user={user} />}
                 />
                 <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
                 <Route path="/dashboard/overview" element={<DashboardPage user={user} isOnline={isOnline} section="overview" />} />
@@ -328,6 +368,10 @@ function App() {
           <main className="public-main">
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/features" element={<LandingPage />} />
+              <Route path="/analytics" element={<LandingPage />} />
+              <Route path="/integrations" element={<LandingPage />} />
+              <Route path="/pricing" element={<LandingPage />} />
               <Route
                 path="/login"
                 element={
@@ -348,10 +392,34 @@ function App() {
                   />
                 }
               />
-              <Route path="/dashboard/*" element={<Navigate to="/login" replace />} />
-              <Route path="/settings/*" element={<Navigate to="/login" replace />} />
-              <Route path="/integrations" element={<Navigate to="/login" replace />} />
-              <Route path="/billing" element={<Navigate to="/login" replace />} />
+              <Route
+                path="/dashboard"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/audience"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/content-history"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/revenue"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/profile"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/billing"
+                element={<Navigate to="/login" replace />}
+              />
+              <Route
+                path="/settings"
+                element={<Navigate to="/login" replace />}
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

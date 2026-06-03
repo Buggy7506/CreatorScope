@@ -25,6 +25,7 @@ function progressColor(value: number) {
 }
 
 interface DashboardPageProps {
+  section?: WorkspaceSectionKey;
   user?: {
     name: string;
     email: string;
@@ -294,8 +295,9 @@ const WorkspaceSectionDetail = ({
   </div>
 );
 
-const DashboardPage = ({ user, isOnline = true, section = "overview" }: DashboardPageProps) => {
-  const activeSection = workspaceSections[section] ?? workspaceSections.overview;
+const DashboardPage = ({ section = "overview", user, isOnline = true }: DashboardPageProps) => {
+  const selectedSection = section in workspaceSections ? section : "overview";
+  const activeSection = workspaceSections[selectedSection];
   const [platform, setPlatform] = useState<PlatformKey>("YouTube");
   const { data: platformData, isLoading, error } = useAnalytics(platform);
   const [unifiedAnalytics, setUnifiedAnalytics] = useState<UnifiedAnalytics>(emptyUnifiedAnalytics);
