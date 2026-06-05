@@ -1,6 +1,6 @@
 import app from "./app";
 import { env } from "./config/env";
-import { prisma } from "./lib/prisma";
+import { closePool } from "./config/db";
 
 const server = app.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT}`);
@@ -9,7 +9,7 @@ const server = app.listen(env.PORT, () => {
 const shutdown = async () => {
   console.log("Shutting down server...");
   server.close(async () => {
-    await prisma.$disconnect();
+    await closePool();
     process.exit(0);
   });
 };

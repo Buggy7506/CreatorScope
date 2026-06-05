@@ -1,7 +1,9 @@
 import { Router } from "express";
 import { google } from "googleapis";
 
-import { prisma } from "../../lib/prisma";
+import { query } from "../../config/db";
+import { createId } from "../../lib/ids";
+import type { ConnectedAccountRow } from "../../types/database";
 import { env } from "../../config/env";
 import { requireAuth, type AuthRequest } from "../../middleware/auth";
 
@@ -9,14 +11,11 @@ const router = Router();
 
 router.use(requireAuth);
 
-const findYouTubeAccount = (userId: string) =>
-  prisma.connectedAccount.findFirst({
-    where: {
-      userId,
-      platform: "YOUTUBE",
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+const findYouTubeAccount = async (userId: string) =>
+  (await query<ConnectedAccountRow>(
+    'SELECT * FROM "ConnectedAccount" WHERE "userId" = $1 AND "platform" = $2::"Platform" ORDER BY "updatedAt" DESC LIMIT 1',
+    [userId, "YOUTUBE"],
+  )).rows[0] ?? null;
 
 const createGoogleAuthClient = (account: NonNullable<Awaited<ReturnType<typeof findYouTubeAccount>>>) => {
   const oauth2Client = new google.auth.OAuth2(
@@ -157,26 +156,18 @@ router.post("/snapshot", async (req: AuthRequest, res) => {
       });
     }
 
-    const snapshot =
-      await prisma.analyticsSnapshot.create({
-        data: {
-          userId: account.userId,
-
-          platform: "YOUTUBE",
-
-          subscribers: Number(
-            channel.statistics?.subscriberCount || 0
-          ),
-
-          totalViews: Number(
-            channel.statistics?.viewCount || 0
-          ),
-
-          totalVideos: Number(
-            channel.statistics?.videoCount || 0
-          ),
-        },
-      });
+    const snapshot = (await query(
+      `INSERT INTO "AnalyticsSnapshot" ("id", "userId", "platform", "subscribers", "totalViews", "totalVideos")
+       VALUES ($1, $2, 'YOUTUBE'::"Platform", $3, $4, $5)
+       RETURNING *`,
+      [
+        createId(),
+        account.userId,
+        Number(channel.statistics?.subscriberCount || 0),
+        Number(channel.statistics?.viewCount || 0),
+        Number(channel.statistics?.videoCount || 0),
+      ],
+    )).rows[0];
 
     return res.json({
       success: true,
@@ -195,23 +186,14 @@ router.post("/snapshot", async (req: AuthRequest, res) => {
 router.get("/history", async (req: AuthRequest, res) => {
   try {
 
-    const snapshots =
-      await prisma.analyticsSnapshot.findMany({
-        where: { userId: req.userId!, platform: "YOUTUBE" },
-        orderBy: {
-          snapshotDate: "desc",
-        },
-
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-            },
-          },
-        },
-      });
+    const snapshots = (await query(
+      `SELECT s.*, json_build_object('id', u."id", 'email', u."email", 'name', u."name") AS "user"
+       FROM "AnalyticsSnapshot" s
+       JOIN "User" u ON u."id" = s."userId"
+       WHERE s."userId" = $1 AND s."platform" = 'YOUTUBE'::"Platform"
+       ORDER BY s."snapshotDate" DESC`,
+      [req.userId!],
+    )).rows;
 
     return res.json({
       success: true,

@@ -1,19 +1,4 @@
 import {
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  CreditCard,
-  FolderClock,
-  Home,
-  LogOut,
-  Plug,
-  Settings,
-  UserCircle,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
-import {
-  Link,
   Navigate,
   Route,
   Routes,
@@ -35,23 +20,7 @@ import {
   saveAuth,
 } from "./lib/auth";
 import { useNetworkStatus } from "./hooks/useNetworkStatus";
-
-type SidebarItem = {
-  label: string;
-  icon: LucideIcon;
-  path: string;
-  disabledOffline?: boolean;
-};
-
-const sidebarItems: SidebarItem[] = [
-  { label: "Overview", icon: Home, path: "/dashboard" },
-  { label: "Audience", icon: Users, path: "/audience" },
-  { label: "Content History", icon: FolderClock, path: "/content-history" },
-  { label: "Revenue", icon: BarChart3, path: "/revenue" },
-  { label: "Integrations", icon: Plug, path: "/integrations", disabledOffline: true },
-  { label: "Billing", icon: CreditCard, path: "/billing" },
-  { label: "Settings", icon: Settings, path: "/settings" },
-];
+import WorkspaceSidebarTemplate from "./templates/navigation/WorkspaceSidebarTemplate";
 
 function App() {
   const navigate = useNavigate();
@@ -130,12 +99,9 @@ function App() {
   };
 
   const isAuthenticated = Boolean(user);
-  const sidebarStateClass = isSidebarCollapsed ? "sidebar--collapsed" : "";
   useEffect(() => {
     localStorage.setItem("creatorscope_sidebar_collapsed", String(isSidebarCollapsed));
   }, [isSidebarCollapsed]);
-
-  const isSidebarItemActive = (path: string) => location.pathname === path;
 
   if (isBootstrapping) {
     return <main className="boot-screen">Loading CreatorScope...</main>;
@@ -148,129 +114,13 @@ function App() {
       >
         {isAuthenticated ? (
           <>
-            <aside
-              className={`sidebar ${sidebarStateClass}`}
-              aria-label="CreatorScope workspace navigation"
-            >
-              <div className="sidebar-topbar">
-                <Link
-                  to="/dashboard/overview"
-                  className="sidebar-brand"
-                  title="CreatorScope dashboard"
-                >
-                  <div className="sidebar-mark">CS</div>
-                  <div className="sidebar-copy">
-                    <p className="sidebar-brand-title">CreatorScope</p>
-                    <p className="sidebar-brand-subtitle">Creator OS</p>
-                  </div>
-                </Link>
-
-                <button
-                  type="button"
-                  className="sidebar-collapse-button"
-                  onClick={() => setIsSidebarCollapsed((current) => !current)}
-                  aria-label={
-                    isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                  }
-                  title={
-                    isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                  }
-                >
-                  {isSidebarCollapsed ? (
-                    <ChevronRight size={18} />
-                  ) : (
-                    <ChevronLeft size={18} />
-                  )}
-                </button>
-              </div>
-
-              <div className="sidebar-scroll-area">
-                <div
-                  className="sidebar-user-card"
-                  title={`${user?.name ?? "Creator"} · ${user?.email ?? "creator@creatorscope.app"}`}
-                >
-                  <div className="sidebar-user-avatar">
-                    {user?.name?.charAt(0).toUpperCase() ?? "C"}
-                  </div>
-                  <div className="sidebar-copy">
-                    <p className="sidebar-user-name">
-                      {user?.name ?? "Creator"}
-                    </p>
-                    <p className="sidebar-user-email">
-                      {user?.email ?? "creator@creatorscope.app"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="sidebar-section-label">Workspace</div>
-                <nav className="sidebar-nav">
-                  {sidebarItems.map(
-                    ({ label, icon: Icon, path, disabledOffline }) => {
-                      const isDisabled = !isOnline && disabledOffline;
-                      const isActive = isSidebarItemActive(path);
-
-                      return (
-                        <Link
-                          key={label}
-                          to={path}
-                          className={`sidebar-link ${isActive ? "sidebar-link--active" : ""} ${isDisabled ? "sidebar-link--disabled" : ""}`}
-                          title={
-                            isDisabled
-                              ? `${label} is unavailable offline`
-                              : label
-                          }
-                          aria-disabled={isDisabled}
-                          aria-current={isActive ? "page" : undefined}
-                          onClick={(event) => {
-                            if (isDisabled) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
-                          <span
-                            className="sidebar-link-icon"
-                            aria-hidden="true"
-                          >
-                            <Icon size={18} strokeWidth={2} />
-                          </span>
-                          <span className="sidebar-link-label">{label}</span>
-                        </Link>
-                      );
-                    },
-                  )}
-                </nav>
-              </div>
-
-              <div className="sidebar-footer">
-                <div
-                  className={`sidebar-status ${isOnline ? "sidebar-status--online" : "sidebar-status--offline"}`}
-                >
-                  <span aria-hidden="true" />
-                  <p className="sidebar-footer-note">
-                    {isOnline
-                      ? "Revenue intelligence online"
-                      : "Offline mode active"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="sidebar-logout"
-                  title="Sign out"
-                >
-                  <LogOut size={17} />
-                  <span className="sidebar-link-label">Sign out</span>
-                </button>
-                <Link
-                  to="/profile"
-                  className="sidebar-profile-link"
-                  title="Profile and preferences"
-                >
-                  <UserCircle size={18} />
-                  <span className="sidebar-link-label">Profile</span>
-                </Link>
-              </div>
-            </aside>
+            <WorkspaceSidebarTemplate
+              user={user}
+              isOnline={isOnline}
+              isCollapsed={isSidebarCollapsed}
+              onToggleCollapsed={() => setIsSidebarCollapsed((current) => !current)}
+              onLogout={handleLogout}
+            />
 
             <main className="dashboard-main">
               <Routes>

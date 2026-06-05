@@ -1,0 +1,2 @@
+-- Optional seed data for local development.
+-- This file intentionally avoids inserting users or credentials.

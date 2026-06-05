@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { AuthUser, saveAuth } from "../lib/auth";
+import PublicHeaderTemplate from "../templates/navigation/PublicHeaderTemplate";
 
 interface AuthPageProps {
   user: AuthUser | null;
@@ -211,6 +212,8 @@ const AuthPage = ({ user, onLogin, isOnline }: AuthPageProps) => {
 
   return (
     <section className="auth-shell">
+      <PublicHeaderTemplate variant="auth" />
+
       <div className="auth-kicker-row">
         <div className="auth-brand-chip">CreatorScope</div>
         <div className="auth-brand-chip auth-brand-chip--soft">
@@ -221,7 +224,7 @@ const AuthPage = ({ user, onLogin, isOnline }: AuthPageProps) => {
       <div className="auth-grid">
         <div className="auth-copy">
           <div className="auth-copy-badge">
-            VunaFlow-inspired creator intelligence
+            Creator intelligence workspace
           </div>
           <h1 className="auth-copy-title">
             {isRegister

@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../../lib/prisma';
+import { query } from '../../config/db';
+import { createId } from '../../lib/ids';
+import type { SubscriptionStatus, UserRow } from '../../types/database';
 import { AuthRequest, requireAuth } from '../../middleware/auth';
 import { env } from '../../config/env';
 
@@ -31,7 +33,7 @@ type StripeSubscriptionPayload = {
 
 const toStripeTimestamp = (timestamp?: number | null) => (timestamp ? new Date(timestamp * 1000) : null);
 
-const toSubscriptionStatus = (status?: string) => {
+const toSubscriptionStatus = (status?: string): SubscriptionStatus => {
   switch (status) {
     case 'trialing':
       return 'TRIALING';
@@ -124,41 +126,45 @@ async function upsertSubscription(subscription: StripeSubscriptionPayload, fallb
 
   if (!userId) return;
 
-  await prisma.subscription.upsert({
-    where: { stripeSubscriptionId: subscription.id },
-    update: {
-      status: toSubscriptionStatus(subscription.status),
-      stripeCustomerId: subscription.customer,
-      stripePriceId: price?.id,
-      stripeProductId: price?.product,
-      currentPeriodStart: toStripeTimestamp(subscription.current_period_start),
-      currentPeriodEnd: toStripeTimestamp(subscription.current_period_end),
-      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
-      canceledAt: toStripeTimestamp(subscription.canceled_at),
-      trialEndsAt: toStripeTimestamp(subscription.trial_end),
-    },
-    create: {
+  await query(
+    `INSERT INTO "Subscription" (
+      "id", "userId", "tier", "status", "stripeCustomerId", "stripeSubscriptionId", "stripePriceId", "stripeProductId",
+      "currentPeriodStart", "currentPeriodEnd", "cancelAtPeriodEnd", "canceledAt", "trialEndsAt", "updatedAt"
+     ) VALUES ($1, $2, $3::"SubscriptionTier", $4::"SubscriptionStatus", $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
+     ON CONFLICT ("stripeSubscriptionId") DO UPDATE SET
+      "status" = EXCLUDED."status",
+      "stripeCustomerId" = EXCLUDED."stripeCustomerId",
+      "stripePriceId" = EXCLUDED."stripePriceId",
+      "stripeProductId" = EXCLUDED."stripeProductId",
+      "currentPeriodStart" = EXCLUDED."currentPeriodStart",
+      "currentPeriodEnd" = EXCLUDED."currentPeriodEnd",
+      "cancelAtPeriodEnd" = EXCLUDED."cancelAtPeriodEnd",
+      "canceledAt" = EXCLUDED."canceledAt",
+      "trialEndsAt" = EXCLUDED."trialEndsAt",
+      "updatedAt" = NOW()`,
+    [
+      createId(),
       userId,
-      tier: subscription.metadata?.tier === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO',
-      status: toSubscriptionStatus(subscription.status),
-      stripeCustomerId: subscription.customer,
-      stripeSubscriptionId: subscription.id,
-      stripePriceId: price?.id,
-      stripeProductId: price?.product,
-      currentPeriodStart: toStripeTimestamp(subscription.current_period_start),
-      currentPeriodEnd: toStripeTimestamp(subscription.current_period_end),
-      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
-      canceledAt: toStripeTimestamp(subscription.canceled_at),
-      trialEndsAt: toStripeTimestamp(subscription.trial_end),
-    },
-  });
+      subscription.metadata?.tier === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO',
+      toSubscriptionStatus(subscription.status),
+      subscription.customer ?? null,
+      subscription.id,
+      price?.id ?? null,
+      price?.product ?? null,
+      toStripeTimestamp(subscription.current_period_start),
+      toStripeTimestamp(subscription.current_period_end),
+      Boolean(subscription.cancel_at_period_end),
+      toStripeTimestamp(subscription.canceled_at),
+      toStripeTimestamp(subscription.trial_end),
+    ],
+  );
 }
 
 router.get('/plan', requireAuth, async (req: AuthRequest, res) => {
-  const subscription = await prisma.subscription.findFirst({
-    where: { userId: req.userId },
-    orderBy: { updatedAt: 'desc' },
-  });
+  const subscription = (await query(
+    'SELECT * FROM "Subscription" WHERE "userId" = $1 ORDER BY "updatedAt" DESC LIMIT 1',
+    [req.userId],
+  )).rows[0];
 
   res.json({
     currentPlan: subscription?.tier ?? 'FREE',
@@ -178,7 +184,7 @@ router.post('/checkout', requireAuth, async (req: AuthRequest, res) => {
       return res.status(400).json({ message: `Stripe price ID for ${tier} is not configured.` });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    const user = (await query<UserRow>('SELECT * FROM "User" WHERE "id" = $1 LIMIT 1', [req.userId])).rows[0];
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
     const params = new URLSearchParams();
@@ -208,7 +214,10 @@ router.post('/checkout', requireAuth, async (req: AuthRequest, res) => {
 router.post('/portal', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { customerId } = portalSchema.parse(req.body);
-    const subscription = await prisma.subscription.findFirst({ where: { userId: req.userId }, orderBy: { updatedAt: 'desc' } });
+    const subscription = (await query<{ stripeCustomerId: string | null }>(
+      'SELECT * FROM "Subscription" WHERE "userId" = $1 ORDER BY "updatedAt" DESC LIMIT 1',
+      [req.userId],
+    )).rows[0];
     const stripeCustomerId = customerId ?? subscription?.stripeCustomerId;
 
     if (!stripeCustomerId) {
@@ -238,17 +247,21 @@ router.post('/webhook', async (req, res) => {
       case 'checkout.session.completed': {
         const session = event.data.object as { subscription?: string; customer?: string; metadata?: Record<string, string> };
         if (session.subscription && session.metadata?.userId) {
-          await prisma.subscription.upsert({
-            where: { stripeSubscriptionId: session.subscription },
-            update: { stripeCustomerId: session.customer, tier: session.metadata.tier === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO' },
-            create: {
-              userId: session.metadata.userId,
-              tier: session.metadata.tier === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO',
-              status: 'ACTIVE',
-              stripeCustomerId: session.customer,
-              stripeSubscriptionId: session.subscription,
-            },
-          });
+          await query(
+            `INSERT INTO "Subscription" ("id", "userId", "tier", "status", "stripeCustomerId", "stripeSubscriptionId", "updatedAt")
+             VALUES ($1, $2, $3::"SubscriptionTier", 'ACTIVE'::"SubscriptionStatus", $4, $5, NOW())
+             ON CONFLICT ("stripeSubscriptionId") DO UPDATE SET
+              "stripeCustomerId" = EXCLUDED."stripeCustomerId",
+              "tier" = EXCLUDED."tier",
+              "updatedAt" = NOW()`,
+            [
+              createId(),
+              session.metadata.userId,
+              session.metadata.tier === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO',
+              session.customer ?? null,
+              session.subscription,
+            ],
+          );
         }
         break;
       }
@@ -259,18 +272,18 @@ router.post('/webhook', async (req, res) => {
         break;
       case 'invoice.payment_failed':
         if (event.data.object.subscription) {
-          await prisma.subscription.updateMany({
-            where: { stripeSubscriptionId: event.data.object.subscription },
-            data: { status: 'PAST_DUE' },
-          });
+          await query(
+            'UPDATE "Subscription" SET "status" = $1::"SubscriptionStatus", "updatedAt" = NOW() WHERE "stripeSubscriptionId" = $2',
+            ['PAST_DUE', event.data.object.subscription],
+          );
         }
         break;
       case 'invoice.payment_succeeded':
         if (event.data.object.subscription) {
-          await prisma.subscription.updateMany({
-            where: { stripeSubscriptionId: event.data.object.subscription },
-            data: { status: 'ACTIVE' },
-          });
+          await query(
+            'UPDATE "Subscription" SET "status" = $1::"SubscriptionStatus", "updatedAt" = NOW() WHERE "stripeSubscriptionId" = $2',
+            ['ACTIVE', event.data.object.subscription],
+          );
         }
         break;
       default:
