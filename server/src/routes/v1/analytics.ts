@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { prisma } from '../../lib/prisma';
+import { query } from '../../config/db';
+import type { ConnectedAccountRow } from '../../types/database';
 import { requireAuth, type AuthRequest } from '../../middleware/auth';
 
 const router = Router();
@@ -200,18 +201,17 @@ const readMetadataValue = (metadata: unknown, key: string) => {
 const buildRealPlatformAnalytics = async (userId: string, platform: PlatformName) => {
   if (platform !== 'YouTube') return emptyPlatformAnalytics(platform);
 
-  const account = await prisma.connectedAccount.findFirst({
-    where: { userId, platform: 'YOUTUBE' },
-    orderBy: { updatedAt: 'desc' },
-  });
+  const account = (await query<ConnectedAccountRow>(
+    'SELECT * FROM "ConnectedAccount" WHERE "userId" = $1 AND "platform" = $2::"Platform" ORDER BY "updatedAt" DESC LIMIT 1',
+    [userId, 'YOUTUBE'],
+  )).rows[0];
 
   if (!account) return emptyPlatformAnalytics(platform);
 
-  const snapshots = await prisma.analyticsSnapshot.findMany({
-    where: { userId, platform: 'YOUTUBE' },
-    orderBy: { snapshotDate: 'asc' },
-    take: 12,
-  });
+  const snapshots = (await query<{ subscribers: number; totalViews: number; totalVideos: number; snapshotDate: Date }>(
+    'SELECT "subscribers", "totalViews", "totalVideos", "snapshotDate" FROM "AnalyticsSnapshot" WHERE "userId" = $1 AND "platform" = $2::"Platform" ORDER BY "snapshotDate" ASC LIMIT 12',
+    [userId, 'YOUTUBE'],
+  )).rows;
 
   const subscribers = snapshots.at(-1)?.subscribers ?? Number(readMetadataValue(account.metadata, 'subscribers') ?? 0);
   const totalViews = snapshots.at(-1)?.totalViews ?? Number(readMetadataValue(account.metadata, 'totalViews') ?? 0);
@@ -241,11 +241,10 @@ const buildRealPlatformAnalytics = async (userId: string, platform: PlatformName
 
 const buildRealUnifiedDashboard = async (userId: string) => {
   const youtube = await buildRealPlatformAnalytics(userId, 'YouTube');
-  const snapshots = await prisma.analyticsSnapshot.findMany({
-    where: { userId, platform: 'YOUTUBE' },
-    orderBy: { snapshotDate: 'asc' },
-    take: 12,
-  });
+  const snapshots = (await query<{ subscribers: number; totalViews: number; totalVideos: number; snapshotDate: Date }>(
+    'SELECT "subscribers", "totalViews", "totalVideos", "snapshotDate" FROM "AnalyticsSnapshot" WHERE "userId" = $1 AND "platform" = $2::"Platform" ORDER BY "snapshotDate" ASC LIMIT 12',
+    [userId, 'YOUTUBE'],
+  )).rows;
   const latestSnapshot = snapshots.at(-1);
 
   return {
@@ -318,7 +317,7 @@ router.get('/architecture', (_req, res) => {
         'src/workers/redis-streams',
       ],
       database: [
-        'prisma/schema.prisma',
+        'server/sql/schema.sql',
         'timescale/hypertables.sql',
         'warehouse/materialized-views.sql',
       ],

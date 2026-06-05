@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import PublicHeaderTemplate from "../templates/navigation/PublicHeaderTemplate";
 
 const publicNav = [
   { label: "Home", path: "/", section: "home" },
@@ -39,34 +40,7 @@ const LandingPage = () => {
   return (
     <div className="relative overflow-hidden bg-zinc-950 text-white">
       <div className="absolute inset-x-0 top-0 h-72 bg-gradient-to-b from-emerald-500/20 via-transparent to-transparent" />
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-zinc-950/85 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-3 text-white no-underline">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400 font-black text-zinc-950 shadow-lg shadow-emerald-500/20">CS</span>
-            <span>
-              <span className="block text-lg font-black">CreatorScope</span>
-              <span className="block text-xs uppercase tracking-[0.22em] text-emerald-200">Creator OS</span>
-            </span>
-          </Link>
-
-          <nav className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 text-sm text-zinc-200 md:flex" aria-label="Public navigation">
-            {publicNav.map((item) => (
-              <Link
-                key={item.label}
-                to={item.path}
-                className={`rounded-full px-4 py-2 transition hover:bg-white/10 hover:text-white ${location.pathname === item.path ? "bg-white/10 text-white" : ""}`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <Link to="/login" className="rounded-full border border-white/10 px-4 py-2 text-sm font-bold text-white transition hover:border-emerald-300">Sign in</Link>
-            <Link to="/login" className="hidden rounded-full bg-emerald-400 px-4 py-2 text-sm font-black text-zinc-950 shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-300 sm:inline-flex">Start free</Link>
-          </div>
-        </div>
-      </header>
+      <PublicHeaderTemplate />
 
       <main className="relative z-10 pt-24">
         <section id="home" className="mx-auto max-w-7xl px-5 pb-16 pt-6 scroll-mt-28 sm:px-6 lg:px-8">

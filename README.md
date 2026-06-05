@@ -3,12 +3,12 @@
 CreatorScope is now structured as a modern Vite + React frontend with a separate backend API. This repository includes:
 
 - `client/` — Vite + React frontend app
-- `server/` — Node + Express backend API with Prisma schema
+- `server/` — Node + Express backend API using direct PostgreSQL queries through pg
 
 ## Stack
 - Frontend: Vite, React, TypeScript, Tailwind CSS
-- Backend: Express, TypeScript, Prisma
-- Database: PostgreSQL (via Prisma)
+- Backend: Express, TypeScript, pg
+- Database: PostgreSQL (direct SQL via pg)
 - API: separated backend with `/api` endpoints
 
 ## Setup
@@ -34,7 +34,7 @@ npm run dev
   - `public/` — static assets and app manifest
 - `server/` — backend API and database schema
   - `src/` — Express server code
-  - `prisma/` — Prisma schema models
+  - `sql/` — SQL schema and seed files
 
 ## What’s included
 - Landing page and dashboard in the frontend
@@ -46,7 +46,7 @@ npm run dev
 - Versioned backend API under `server/src/routes/v1`
 - Frontend service layer and query hooks under `client/src/services`
 - 30-day free trial for new creator accounts
-- Prisma schema for users, connected accounts, videos, analytics, subscriptions, viral scores, heatmaps, and AI insights
+- SQL schema for users, connected accounts, videos, analytics, subscriptions, viral scores, heatmaps, and AI insights
 - App-ready PWA metadata for the frontend
 
 ## Next steps

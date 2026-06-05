@@ -1,9 +1,11 @@
 import { google } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
-import { Prisma, PrismaClient, Platform } from "@prisma/client";
+import { PoolClient } from "pg";
 
 import { env } from "../../config/env";
-import { prisma as defaultPrisma } from "../../lib/prisma";
+import { query, withTransaction } from "../../config/db";
+import { createId } from "../../lib/ids";
+import type { ConnectedAccountRow, Platform } from "../../types/database";
 
 export const GOOGLE_YOUTUBE_SCOPES = [
   "https://www.googleapis.com/auth/youtube.readonly",
@@ -77,7 +79,13 @@ export type UnifiedCreatorAnalytics = {
   lastSyncedAt: string;
 };
 
-type ConnectedGoogleAccount = Prisma.ConnectedAccountGetPayload<Record<string, never>>;
+const Platform = {
+  YOUTUBE: "YOUTUBE",
+  GA4: "GA4",
+  GOOGLE: "GOOGLE",
+} as const;
+
+type ConnectedGoogleAccount = ConnectedAccountRow;
 
 type GoogleApiErrorPayload = {
   code?: number;
@@ -114,8 +122,6 @@ export class GoogleAnalyticsServiceError extends Error {
 export class YoutubeGa4Service {
   private readonly tokenRefreshSkewMs = 5 * 60 * 1000;
 
-  constructor(private readonly prisma: PrismaClient = defaultPrisma) {}
-
   buildOAuth2Client(): OAuth2Client {
     return new google.auth.OAuth2(
       env.GOOGLE_CLIENT_ID,
@@ -146,48 +152,52 @@ export class YoutubeGa4Service {
       const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
       const { data: profile } = await oauth2.userinfo.get();
       const tokenExpiry = tokens.expiry_date ? new Date(tokens.expiry_date) : null;
+      const platformUserId = profile.id ?? profile.email ?? "google-account";
 
-      return this.prisma.connectedAccount.upsert({
-        where: {
-          userId_platform_platformUserId: {
-            userId,
-            platform,
-            platformUserId: profile.id ?? profile.email ?? "google-account",
-          },
-        },
-        create: {
+      const result = await query<ConnectedGoogleAccount>(
+        `INSERT INTO "ConnectedAccount" (
+          "id", "userId", "platform", "platformUserId", "username", "displayName", "profileUrl",
+          "accessToken", "refreshToken", "tokenExpiry", "expiresAt", "scopes", "metadata", "updatedAt"
+         ) VALUES ($1, $2, $3::"Platform", $4, $5, $6, $7, $8, $9, $10, $10, $11, $12, NOW())
+         ON CONFLICT ("userId", "platform", "platformUserId") DO UPDATE SET
+          "username" = EXCLUDED."username",
+          "displayName" = EXCLUDED."displayName",
+          "profileUrl" = EXCLUDED."profileUrl",
+          "accessToken" = EXCLUDED."accessToken",
+          "refreshToken" = COALESCE(EXCLUDED."refreshToken", "ConnectedAccount"."refreshToken"),
+          "tokenExpiry" = EXCLUDED."tokenExpiry",
+          "expiresAt" = EXCLUDED."expiresAt",
+          "scopes" = EXCLUDED."scopes",
+          "metadata" = EXCLUDED."metadata",
+          "updatedAt" = NOW()
+         RETURNING *`,
+        [
+          createId(),
           userId,
           platform,
-          platformUserId: profile.id ?? profile.email ?? "google-account",
-          username: profile.email,
-          displayName: profile.name,
-          profileUrl: profile.picture,
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
+          platformUserId,
+          profile.email ?? null,
+          profile.name ?? null,
+          profile.picture ?? null,
+          tokens.access_token ?? null,
+          tokens.refresh_token ?? null,
           tokenExpiry,
-          expiresAt: tokenExpiry,
-          scopes: GOOGLE_CREATOR_ANALYTICS_SCOPES,
-          metadata: profile as Prisma.InputJsonObject,
-        },
-        update: {
-          username: profile.email,
-          displayName: profile.name,
-          profileUrl: profile.picture,
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token ?? undefined,
-          tokenExpiry,
-          expiresAt: tokenExpiry,
-          scopes: GOOGLE_CREATOR_ANALYTICS_SCOPES,
-          metadata: profile as Prisma.InputJsonObject,
-        },
-      });
+          GOOGLE_CREATOR_ANALYTICS_SCOPES,
+          JSON.stringify(profile),
+        ],
+      );
+
+      return result.rows[0];
     } catch (error) {
       throw this.normalizeGoogleError(error, "Unable to complete Google OAuth exchange.");
     }
   }
 
   async getAuthorizedClient(connectedAccountId: string): Promise<{ auth: OAuth2Client; account: ConnectedGoogleAccount }> {
-    const account = await this.prisma.connectedAccount.findUnique({ where: { id: connectedAccountId } });
+    const account = (await query<ConnectedGoogleAccount>(
+      'SELECT * FROM "ConnectedAccount" WHERE "id" = $1 LIMIT 1',
+      [connectedAccountId],
+    )).rows[0] ?? null;
 
     if (!account) {
       throw new GoogleAnalyticsServiceError("Connected Google account was not found.", 404, "account_not_found");
@@ -209,15 +219,13 @@ export class YoutubeGa4Service {
         const { credentials } = await auth.refreshAccessToken();
         const tokenExpiry = credentials.expiry_date ? new Date(credentials.expiry_date) : null;
 
-        const refreshedAccount = await this.prisma.connectedAccount.update({
-          where: { id: account.id },
-          data: {
-            accessToken: credentials.access_token ?? account.accessToken,
-            refreshToken: credentials.refresh_token ?? account.refreshToken,
-            tokenExpiry,
-            expiresAt: tokenExpiry,
-          },
-        });
+        const refreshedAccount = (await query<ConnectedGoogleAccount>(
+          `UPDATE "ConnectedAccount"
+           SET "accessToken" = $1, "refreshToken" = $2, "tokenExpiry" = $3, "expiresAt" = $3, "updatedAt" = NOW()
+           WHERE "id" = $4
+           RETURNING *`,
+          [credentials.access_token ?? account.accessToken, credentials.refresh_token ?? account.refreshToken, tokenExpiry, account.id],
+        )).rows[0];
 
         auth.setCredentials({
           access_token: refreshedAccount.accessToken ?? undefined,
@@ -424,15 +432,19 @@ export class YoutubeGa4Service {
   }
 
   private async resolveConnectedAccount(userId: string, platform: Platform, connectedAccountId?: string) {
-    const account = connectedAccountId
-      ? await this.prisma.connectedAccount.findFirst({ where: { id: connectedAccountId, userId } })
-      : await this.prisma.connectedAccount.findFirst({
-          where: {
-            userId,
-            platform: { in: platform === Platform.GA4 ? [Platform.GA4, Platform.GOOGLE] : [Platform.YOUTUBE, Platform.GOOGLE] },
-          },
-          orderBy: { connectedAt: "desc" },
-        });
+    const result = connectedAccountId
+      ? await query<ConnectedGoogleAccount>(
+          'SELECT * FROM "ConnectedAccount" WHERE "id" = $1 AND "userId" = $2 LIMIT 1',
+          [connectedAccountId, userId],
+        )
+      : await query<ConnectedGoogleAccount>(
+          `SELECT * FROM "ConnectedAccount"
+           WHERE "userId" = $1 AND "platform" = ANY($2::"Platform"[])
+           ORDER BY "connectedAt" DESC
+           LIMIT 1`,
+          [userId, platform === Platform.GA4 ? [Platform.GA4, Platform.GOOGLE] : [Platform.YOUTUBE, Platform.GOOGLE]],
+        );
+    const account = result.rows[0] ?? null;
 
     if (!account) {
       throw new GoogleAnalyticsServiceError(`No connected ${platform} account found for this user.`, 404, "account_not_found");
@@ -524,61 +536,59 @@ export class YoutubeGa4Service {
     attribution: Record<string, unknown>;
     rawPayload: unknown;
   }) {
-    await this.prisma.$transaction(
-      input.timeSeries.map((point) =>
-        this.prisma.youtubeSnapshot.upsert({
-          where: {
-            connectedAccountId_channelId_date: {
-              connectedAccountId: input.connectedAccountId,
-              channelId: input.channelId,
-              date: this.toDateOnly(point.date),
-            },
-          },
-          create: {
-            userId: input.userId,
-            connectedAccountId: input.connectedAccountId,
-            channelId: input.channelId,
-            date: this.toDateOnly(point.date),
-            views: BigInt(point.views ?? 0),
-            likes: BigInt(point.likes ?? 0),
-            dislikes: BigInt(point.dislikes ?? 0),
-            comments: BigInt(point.comments ?? 0),
-            shares: BigInt(point.shares ?? 0),
-            subscribers: BigInt(input.subscribers),
-            subscribersGained: BigInt(point.subscribersGained ?? 0),
-            subscribersLost: BigInt(point.subscribersLost ?? 0),
-            averageViewDuration: new Prisma.Decimal(point.averageViewDuration ?? 0),
-            estimatedMinutesWatched: new Prisma.Decimal(point.estimatedMinutesWatched ?? 0),
-            revenue: new Prisma.Decimal(point.estimatedRevenue ?? 0),
-            estimatedRevenue: new Prisma.Decimal(point.estimatedRevenue ?? 0),
-            estimatedAdRevenue: new Prisma.Decimal(point.estimatedAdRevenue ?? 0),
-            currency: input.currency,
-            rawDemographics: input.demographics as Prisma.InputJsonObject,
-            rawTrafficSources: input.attribution as Prisma.InputJsonObject,
-            rawPayload: input.rawPayload as Prisma.InputJsonObject,
-          },
-          update: {
-            views: BigInt(point.views ?? 0),
-            likes: BigInt(point.likes ?? 0),
-            dislikes: BigInt(point.dislikes ?? 0),
-            comments: BigInt(point.comments ?? 0),
-            shares: BigInt(point.shares ?? 0),
-            subscribers: BigInt(input.subscribers),
-            subscribersGained: BigInt(point.subscribersGained ?? 0),
-            subscribersLost: BigInt(point.subscribersLost ?? 0),
-            averageViewDuration: new Prisma.Decimal(point.averageViewDuration ?? 0),
-            estimatedMinutesWatched: new Prisma.Decimal(point.estimatedMinutesWatched ?? 0),
-            revenue: new Prisma.Decimal(point.estimatedRevenue ?? 0),
-            estimatedRevenue: new Prisma.Decimal(point.estimatedRevenue ?? 0),
-            estimatedAdRevenue: new Prisma.Decimal(point.estimatedAdRevenue ?? 0),
-            currency: input.currency,
-            rawDemographics: input.demographics as Prisma.InputJsonObject,
-            rawTrafficSources: input.attribution as Prisma.InputJsonObject,
-            rawPayload: input.rawPayload as Prisma.InputJsonObject,
-          },
-        }),
-      ),
-    );
+    await withTransaction(async (client: PoolClient) => {
+      for (const point of input.timeSeries) {
+        await client.query(
+          `INSERT INTO "YoutubeSnapshot" (
+            "id", "userId", "connectedAccountId", "channelId", "date", "views", "likes", "dislikes", "comments", "shares",
+            "subscribers", "subscribersGained", "subscribersLost", "averageViewDuration", "estimatedMinutesWatched",
+            "revenue", "estimatedRevenue", "estimatedAdRevenue", "currency", "rawDemographics", "rawTrafficSources", "rawPayload", "updatedAt"
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16, $17, $18, $19, $20, $21, NOW())
+           ON CONFLICT ("connectedAccountId", "channelId", "date") DO UPDATE SET
+            "views" = EXCLUDED."views",
+            "likes" = EXCLUDED."likes",
+            "dislikes" = EXCLUDED."dislikes",
+            "comments" = EXCLUDED."comments",
+            "shares" = EXCLUDED."shares",
+            "subscribers" = EXCLUDED."subscribers",
+            "subscribersGained" = EXCLUDED."subscribersGained",
+            "subscribersLost" = EXCLUDED."subscribersLost",
+            "averageViewDuration" = EXCLUDED."averageViewDuration",
+            "estimatedMinutesWatched" = EXCLUDED."estimatedMinutesWatched",
+            "revenue" = EXCLUDED."revenue",
+            "estimatedRevenue" = EXCLUDED."estimatedRevenue",
+            "estimatedAdRevenue" = EXCLUDED."estimatedAdRevenue",
+            "currency" = EXCLUDED."currency",
+            "rawDemographics" = EXCLUDED."rawDemographics",
+            "rawTrafficSources" = EXCLUDED."rawTrafficSources",
+            "rawPayload" = EXCLUDED."rawPayload",
+            "updatedAt" = NOW()`,
+          [
+            createId(),
+            input.userId,
+            input.connectedAccountId,
+            input.channelId,
+            this.toDateOnly(point.date),
+            point.views ?? 0,
+            point.likes ?? 0,
+            point.dislikes ?? 0,
+            point.comments ?? 0,
+            point.shares ?? 0,
+            input.subscribers,
+            point.subscribersGained ?? 0,
+            point.subscribersLost ?? 0,
+            point.averageViewDuration ?? 0,
+            point.estimatedMinutesWatched ?? 0,
+            point.estimatedRevenue ?? 0,
+            point.estimatedAdRevenue ?? 0,
+            input.currency,
+            JSON.stringify(input.demographics),
+            JSON.stringify(input.attribution),
+            JSON.stringify(input.rawPayload),
+          ],
+        );
+      }
+    });
   }
 
   private async persistGa4Snapshots(input: {
@@ -589,51 +599,48 @@ export class YoutubeGa4Service {
     attribution: Record<string, unknown>;
     rawPayload: unknown;
   }) {
-    await this.prisma.$transaction(
-      input.timeSeries.map((point) =>
-        this.prisma.ga4Snapshot.upsert({
-          where: {
-            connectedAccountId_propertyId_date: {
-              connectedAccountId: input.connectedAccountId,
-              propertyId: input.propertyId,
-              date: this.toDateOnly(point.date),
-            },
-          },
-          create: {
-            userId: input.userId,
-            connectedAccountId: input.connectedAccountId,
-            propertyId: input.propertyId,
-            date: this.toDateOnly(point.date),
-            activeUsers: BigInt(point.activeUsers ?? 0),
-            newUsers: BigInt(point.newUsers ?? 0),
-            sessions: BigInt(point.sessions ?? 0),
-            pageViews: BigInt(point.pageViews ?? point.views ?? 0),
-            screenPageViews: BigInt(point.pageViews ?? point.views ?? 0),
-            averageSessionDuration: new Prisma.Decimal(point.averageSessionDuration ?? 0),
-            engagementRate: new Prisma.Decimal(point.engagementRate ?? 0),
-            conversions: new Prisma.Decimal(point.conversions ?? 0),
-            purchaseRevenue: new Prisma.Decimal(point.purchaseRevenue ?? 0),
-            campaignConversions: input.attribution as Prisma.InputJsonObject,
-            attribution: input.attribution as Prisma.InputJsonObject,
-            rawPayload: input.rawPayload as Prisma.InputJsonObject,
-          },
-          update: {
-            activeUsers: BigInt(point.activeUsers ?? 0),
-            newUsers: BigInt(point.newUsers ?? 0),
-            sessions: BigInt(point.sessions ?? 0),
-            pageViews: BigInt(point.pageViews ?? point.views ?? 0),
-            screenPageViews: BigInt(point.pageViews ?? point.views ?? 0),
-            averageSessionDuration: new Prisma.Decimal(point.averageSessionDuration ?? 0),
-            engagementRate: new Prisma.Decimal(point.engagementRate ?? 0),
-            conversions: new Prisma.Decimal(point.conversions ?? 0),
-            purchaseRevenue: new Prisma.Decimal(point.purchaseRevenue ?? 0),
-            campaignConversions: input.attribution as Prisma.InputJsonObject,
-            attribution: input.attribution as Prisma.InputJsonObject,
-            rawPayload: input.rawPayload as Prisma.InputJsonObject,
-          },
-        }),
-      ),
-    );
+    await withTransaction(async (client: PoolClient) => {
+      for (const point of input.timeSeries) {
+        await client.query(
+          `INSERT INTO "Ga4Snapshot" (
+            "id", "userId", "connectedAccountId", "propertyId", "date", "activeUsers", "newUsers", "sessions",
+            "pageViews", "screenPageViews", "averageSessionDuration", "engagementRate", "conversions", "purchaseRevenue",
+            "campaignConversions", "attribution", "rawPayload", "updatedAt"
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11, $12, $13, $14, $14, $15, NOW())
+           ON CONFLICT ("connectedAccountId", "propertyId", "date") DO UPDATE SET
+            "activeUsers" = EXCLUDED."activeUsers",
+            "newUsers" = EXCLUDED."newUsers",
+            "sessions" = EXCLUDED."sessions",
+            "pageViews" = EXCLUDED."pageViews",
+            "screenPageViews" = EXCLUDED."screenPageViews",
+            "averageSessionDuration" = EXCLUDED."averageSessionDuration",
+            "engagementRate" = EXCLUDED."engagementRate",
+            "conversions" = EXCLUDED."conversions",
+            "purchaseRevenue" = EXCLUDED."purchaseRevenue",
+            "campaignConversions" = EXCLUDED."campaignConversions",
+            "attribution" = EXCLUDED."attribution",
+            "rawPayload" = EXCLUDED."rawPayload",
+            "updatedAt" = NOW()`,
+          [
+            createId(),
+            input.userId,
+            input.connectedAccountId,
+            input.propertyId,
+            this.toDateOnly(point.date),
+            point.activeUsers ?? 0,
+            point.newUsers ?? 0,
+            point.sessions ?? 0,
+            point.pageViews ?? point.views ?? 0,
+            point.averageSessionDuration ?? 0,
+            point.engagementRate ?? 0,
+            point.conversions ?? 0,
+            point.purchaseRevenue ?? 0,
+            JSON.stringify(input.attribution),
+            JSON.stringify(input.rawPayload),
+          ],
+        );
+      }
+    });
   }
 
   private normalizeGoogleError(error: unknown, fallbackMessage: string): GoogleAnalyticsServiceError {

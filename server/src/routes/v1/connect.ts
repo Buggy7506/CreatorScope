@@ -5,7 +5,9 @@ import jwt from 'jsonwebtoken';
 import querystring from 'querystring';
 import { google } from 'googleapis';
 import { env } from '../../config/env';
-import { prisma } from '../../lib/prisma';
+import { query } from '../../config/db';
+import { createId } from '../../lib/ids';
+import type { ConnectedAccountRow, UserRow } from '../../types/database';
 
 const router = Router();
 
@@ -26,31 +28,22 @@ const oauthFailure = (res: Response, message: string) => {
 
 const finishSocialLogin = async (res: Response, profile: SocialProfile) => {
   const password = await bcrypt.hash(`oauth:${profile.provider}:${profile.providerUserId ?? profile.email}`, 12);
-  const user = await prisma.user.upsert({
-    where: { email: profile.email.toLowerCase() },
-    update: { name: profile.name },
-    create: { email: profile.email.toLowerCase(), name: profile.name, password },
-  });
+  const normalizedEmail = profile.email.toLowerCase();
+  const user = (await query<UserRow>(
+    `INSERT INTO "User" ("id", "email", "name", "password", "updatedAt")
+     VALUES ($1, $2, $3, $4, NOW())
+     ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name", "updatedAt" = NOW()
+     RETURNING *`,
+    [createId(), normalizedEmail, profile.name, password],
+  )).rows[0];
 
-  const existingAccount = await prisma.connectedAccount.findFirst({
-    where: { userId: user.id, platform: profile.provider },
-  });
-
-  if (existingAccount) {
-    await prisma.connectedAccount.update({
-      where: { id: existingAccount.id },
-      data: { platformUserId: profile.providerUserId, username: profile.name },
-    });
-  } else {
-    await prisma.connectedAccount.create({
-      data: {
-        userId: user.id,
-        platform: profile.provider,
-        platformUserId: profile.providerUserId,
-        username: profile.name,
-      },
-    });
-  }
+  await query(
+    `INSERT INTO "ConnectedAccount" ("id", "userId", "platform", "platformUserId", "username", "updatedAt")
+     VALUES ($1, $2, $3::"Platform", $4, $5, NOW())
+     ON CONFLICT ("userId", "platform", "platformUserId")
+     DO UPDATE SET "username" = EXCLUDED."username", "updatedAt" = NOW()`,
+    [createId(), user.id, profile.provider, profile.providerUserId ?? normalizedEmail, profile.name],
+  );
 
   const target = new URL('/auth/callback', env.FRONTEND_URL);
   target.searchParams.set('token', signToken(user.id));
@@ -134,45 +127,60 @@ router.get('/youtube/callback', async (req, res) => {
     if (!email) return oauthFailure(res, 'Google did not share an email address for the YouTube connection.');
 
     const password = await bcrypt.hash(`oauth:YOUTUBE:${me.data.id ?? email}`, 12);
-    const user = await prisma.user.upsert({
-      where: { email: email.toLowerCase() },
-      update: { name: me.data.name || email.split('@')[0] || 'YouTube Creator' },
-      create: { email: email.toLowerCase(), name: me.data.name || email.split('@')[0] || 'YouTube Creator', password },
-    });
+    const user = (await query<UserRow>(
+      `INSERT INTO "User" ("id", "email", "name", "password", "updatedAt")
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name", "updatedAt" = NOW()
+       RETURNING *`,
+      [createId(), email.toLowerCase(), me.data.name || email.split('@')[0] || 'YouTube Creator', password],
+    )).rows[0];
 
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
     const channelResponse = await youtube.channels.list({ mine: true, part: ['id', 'snippet', 'statistics'] });
     const channel = channelResponse.data.items?.[0];
 
-    const existingAccount = await prisma.connectedAccount.findFirst({
-      where: { userId: user.id, platform: 'YOUTUBE', platformUserId: channel?.id ?? me.data.id ?? email },
-    });
+    const platformUserId = channel?.id ?? me.data.id ?? email;
 
-    const accountData = {
-      userId: user.id,
-      platform: 'YOUTUBE' as const,
-      platformUserId: channel?.id ?? me.data.id ?? email,
-      username: channel?.snippet?.title ?? me.data.name ?? email.split('@')[0],
-      displayName: channel?.snippet?.title ?? me.data.name ?? 'YouTube Creator',
-      channelId: channel?.id,
-      profileUrl: channel?.id ? `https://www.youtube.com/channel/${channel.id}` : undefined,
-      scopes: Array.isArray(tokens.scope) ? tokens.scope : String(tokens.scope ?? '').split(' ').filter(Boolean),
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
-      metadata: {
-        subscribers: channel?.statistics?.subscriberCount,
-        totalViews: channel?.statistics?.viewCount,
-        totalVideos: channel?.statistics?.videoCount,
-        thumbnail: channel?.snippet?.thumbnails?.high?.url,
-      },
+    const scopes = Array.isArray(tokens.scope) ? tokens.scope : String(tokens.scope ?? '').split(' ').filter(Boolean);
+    const metadata = {
+      subscribers: channel?.statistics?.subscriberCount,
+      totalViews: channel?.statistics?.viewCount,
+      totalVideos: channel?.statistics?.videoCount,
+      thumbnail: channel?.snippet?.thumbnails?.high?.url,
     };
 
-    if (existingAccount) {
-      await prisma.connectedAccount.update({ where: { id: existingAccount.id }, data: accountData });
-    } else {
-      await prisma.connectedAccount.create({ data: accountData });
-    }
+    await query<ConnectedAccountRow>(
+      `INSERT INTO "ConnectedAccount" (
+        "id", "userId", "platform", "platformUserId", "username", "displayName", "channelId",
+        "profileUrl", "scopes", "accessToken", "refreshToken", "tokenExpiry", "expiresAt", "metadata", "updatedAt"
+       ) VALUES ($1, $2, 'YOUTUBE'::"Platform", $3, $4, $5, $6, $7, $8, $9, $10, $11, $11, $12, NOW())
+       ON CONFLICT ("userId", "platform", "platformUserId") DO UPDATE SET
+        "username" = EXCLUDED."username",
+        "displayName" = EXCLUDED."displayName",
+        "channelId" = EXCLUDED."channelId",
+        "profileUrl" = EXCLUDED."profileUrl",
+        "scopes" = EXCLUDED."scopes",
+        "accessToken" = EXCLUDED."accessToken",
+        "refreshToken" = COALESCE(EXCLUDED."refreshToken", "ConnectedAccount"."refreshToken"),
+        "tokenExpiry" = EXCLUDED."tokenExpiry",
+        "expiresAt" = EXCLUDED."expiresAt",
+        "metadata" = EXCLUDED."metadata",
+        "updatedAt" = NOW()`,
+      [
+        createId(),
+        user.id,
+        platformUserId,
+        channel?.snippet?.title ?? me.data.name ?? email.split('@')[0],
+        channel?.snippet?.title ?? me.data.name ?? 'YouTube Creator',
+        channel?.id ?? null,
+        channel?.id ? `https://www.youtube.com/channel/${channel.id}` : null,
+        scopes,
+        tokens.access_token ?? null,
+        tokens.refresh_token ?? null,
+        tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+        JSON.stringify(metadata),
+      ],
+    );
 
     const target = new URL('/auth/callback', env.FRONTEND_URL);
     target.searchParams.set('token', signToken(user.id));
